@@ -17,9 +17,6 @@ db.sqlite3
 # Ignore secret keys and sensitive information
 *.secret_key
 
-# Ignore migration files (unless you want to track them)
-*/migrations/
-
 # Ignore user-uploaded media files (if you're using Django's media handling)
 media/
 

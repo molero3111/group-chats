@@ -1,19 +1,30 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11
+# pull official base image
+FROM python:3.11-slim
 
-# Set environment variables
+# set work directory
+WORKDIR /app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE=djangochat.settings
 
 # install system dependencies
 RUN apt-get update
-RUN apt-get -y install libgdal-dev g++ --no-install-recommends
+RUN apt-get -y install libgdal-dev g++ gettext --no-install-recommends
 
-# Set the working directory in the container
-WORKDIR /chat_in_django
-
-# Copy the current directory contents into the container at /chat_in_django
-COPY . /chat_in_django
-
-# Install needed packages specified in requirements.txt
+# install dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
 RUN pip install -r requirements.txt
+
+# copy wait-for-it.sh
+COPY ./wait-for-it.sh .
+
+# make wait-for-it.sh executable
+RUN chmod +x wait-for-it.sh
+
+# copy project
+COPY . .
+
+# run wait-for-it.sh
+ENTRYPOINT ["./wait-for-it.sh", "db:5432", "--"]
