@@ -24,7 +24,7 @@ media/
 static/
 
 # Ignore virtual environment
-venv/
+django_chat_venv/
 
 # Ignore any local development configuration files
 local_settings.py
