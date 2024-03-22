@@ -15,24 +15,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         # Check if the user is authenticated
-        print('test user: ', self.scope["user"], self.scope["user"].is_authenticated)
         if not self.scope["user"].is_authenticated:
             # Unauthenticated, close the connection
-            print('user is not authenticated')
             await self.close()
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f"chat_{self.room_name}"
-        print('test user: ', self.room_name, self.room_group_name)
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-        print('added layer')
         await self.accept()
-        print('accepted connection')
 
     async def disconnect(self, code):
-        print('disconnecting user')
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name

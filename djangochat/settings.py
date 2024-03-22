@@ -1,5 +1,6 @@
-from decouple import Config, Csv
 from pathlib import Path
+
+from decouple import Config
 
 config = Config('.env')
 
@@ -68,32 +69,32 @@ TEMPLATES = [
 WSGI_APPLICATION = 'djangochat.wsgi.application'
 ASGI_APPLICATION = 'djangochat.asgi.application'  # for the chat, long-running connections
 
-# Define your settings using config() function
+# Define Redis connection details using environment variables
 REDIS_HOST = config('REDIS_HOST', default='redis', cast=str)
 REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
-REDIS_SYSTEM_DB = config('REDIS_SYSTEM_DB', default=1, cast=int)
 REDIS_DEFAULT_DB = config('REDIS_DEFAULT_DB', default=0, cast=int)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default='', cast=str)
-print('redis port', type(REDIS_PORT), REDIS_PORT, type(REDIS_DEFAULT_DB),REDIS_DEFAULT_DB)
+REDIS_APP_DB = config('REDIS_APP_DB', default=0, cast=int)
+REDIS_DEFAULT_KEY_EXPIRATION = config('REDIS_DEFAULT_KEY_EXPIRATION', default=3600, cast=int)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default='1234', cast=str)
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [(f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DEFAULT_DB}', {
-                "password": REDIS_PASSWORD,
-            })],
+        "CONFIG": {
+            'hosts': [f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DEFAULT_DB}'],
+            'expiry': REDIS_DEFAULT_KEY_EXPIRATION,
         },
     },
 }
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "HOST": config("POSTGRES_HOST", default='db', cast=str),
-        "PORT": config("POSTGRES_PORT", default='5432', cast=str),
-        "NAME": config("POSTGRES_DB", default='chat_db', cast=str),
-        "USER": config("POSTGRES_USER", default='chat_admin', cast=str),
-        "PASSWORD": config("POSTGRES_PASSWORD", default='9287532461', cast=str),
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'HOST': config('POSTGRES_HOST', default='db', cast=str),
+        'PORT': config('POSTGRES_PORT', default='5432', cast=str),
+        'NAME': config('POSTGRES_DB', default='chat_db', cast=str),
+        'USER': config('POSTGRES_USER', default='chat_admin', cast=str),
+        'PASSWORD': config('POSTGRES_PASSWORD', default='9287532461', cast=str),
     }
 }
 
@@ -136,7 +137,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
@@ -148,7 +148,7 @@ CACHES = {
     },
     'system': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_SYSTEM_DB}',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_APP_DB}',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'PASSWORD': REDIS_PASSWORD,

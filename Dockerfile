@@ -9,8 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # install system dependencies
-RUN apt-get update
-RUN apt-get -y install libgdal-dev g++ gettext --no-install-recommends
+RUN apt-get update && \
+    apt-get -y install build-essential gdal-bin python3-gdal libgdal-dev
 
 # install dependencies
 RUN pip install --upgrade pip

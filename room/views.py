@@ -7,9 +7,10 @@ from room.models import Room, Message
 # Create your views here.
 @login_required
 def rooms(request):
-    rooms_list = Room.objects.all()
-
-    return render(request, 'rooms.html', {'rooms': rooms_list})
+    return render(request,
+                  'rooms.html',
+                  {'rooms': Room.objects.all()}
+                  )
 
 
 @login_required
