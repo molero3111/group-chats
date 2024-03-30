@@ -37,6 +37,7 @@
     const userName = JSON.parse(document.getElementById('json-username').textContent);
     const ws_route = 'ws://'
         + window.location.host
+        + '/{{url_prefix}}'
         + '/ws/'
         + roomName
         + '/';

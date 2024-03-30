@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
+from djangochat.settings import URL_PREFIX
 from room.models import Room, Message
 
 
@@ -18,5 +19,6 @@ def room(request, slug):
     room_item = Room.objects.get(slug=slug)
     return render(request, 'room.html', {
         'room': room_item,
-        'messages': Message.objects.filter(room=room_item)[0:25]
+        'messages': Message.objects.filter(room=room_item)[0:25],
+        'url_prefix': URL_PREFIX
     })

@@ -157,3 +157,5 @@ CACHES = {
         }
     }
 }
+URL_PREFIX = config('URL_ROOT', default='chat-app', cast=str)
+FORCE_SCRIPT_NAME = f'/{URL_PREFIX}'
