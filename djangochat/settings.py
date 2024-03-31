@@ -20,9 +20,10 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(' ')
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(' ')
 
-LOGOUT_REDIRECT_URL = '/'
-LOGIN_REDIRECT_URL = '/rooms/'
-LOGIN_URL = '/login/'
+URL_PREFIX = config('URL_ROOT', default='chat-app', cast=str)
+LOGOUT_REDIRECT_URL = f'/{URL_PREFIX}'
+LOGIN_REDIRECT_URL = f'/{URL_PREFIX}/rooms/'
+LOGIN_URL = f'/{URL_PREFIX}/login/'
 
 # Application definition
 
@@ -157,5 +158,5 @@ CACHES = {
         }
     }
 }
-URL_PREFIX = config('URL_ROOT', default='chat-app', cast=str)
+
 FORCE_SCRIPT_NAME = f'/{URL_PREFIX}'

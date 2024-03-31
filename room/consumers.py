@@ -1,4 +1,5 @@
 import json
+
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import User
@@ -6,7 +7,6 @@ from django.contrib.auth.models import User
 from room.models import Room, Message
 
 
-# TODO: fix websocket connection on docker, check nginx file and docker compose file
 class ChatConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -14,19 +14,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_group_name = None
 
     async def connect(self):
+        print('connecting to websocket')
         # Check if the user is authenticated
         if not self.scope["user"].is_authenticated:
             # Unauthenticated, close the connection
             await self.close()
+        print('authenticated on websocket')
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f"chat_{self.room_name}"
+        print('creating group', self.room_group_name)
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
+        print('connected')
 
     async def disconnect(self, code):
+        print('disconnecting from websocket', code)
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name

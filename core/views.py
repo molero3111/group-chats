@@ -15,8 +15,5 @@ def signup(request):
             user = form.save()
             login(request, user)
             return redirect('rooms')
-    else:
-        # If it's not a POST request, or the form is invalid, include the form with errors in the context
-        form = SignUpForm()
-
+    form = SignUpForm()
     return render(request, 'signup.html', {'form': form})
