@@ -32,6 +32,7 @@
                     <a href="{% url 'rooms' %}" class="nav-link text-white">Rooms</a>
                 </li>
                 <li class="nav-item">
+                    <!--TODO: fix  this logout, it sends a get request, it should be post, use onclick event-->
                     <a href="{% url 'logout' %}" class="nav-link btn btn-outline-light">Log out</a>
                 </li>
                 {% else %}
