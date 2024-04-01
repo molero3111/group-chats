@@ -43,5 +43,6 @@ djangochat/environment.py
 # Docker
 chat-image:latest
 
-# Nginx config file
+# Nginx
 nginx.conf
+nginx/ssl
