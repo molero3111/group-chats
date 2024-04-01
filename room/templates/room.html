@@ -35,7 +35,9 @@
 <script>
     const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
     const userName = JSON.parse(document.getElementById('json-username').textContent);
-    const ws_route = 'ws://'
+    const protocolPrefix = (window.location.protocol === "https:") ? "wss" : "ws";
+    const ws_route = protocolPrefix
+        + '://'
         + window.location.host
         + '/{{url_prefix}}'
         + '/ws/'
