@@ -4,9 +4,7 @@ services:  # Defines the services that make up your application.
 
   web:  # Configuration for the web service.
     build: ./  # Specifies the location of the Dockerfile to build the container.
-    command: sh -c "python manage.py makemigrations && \ 
-      python manage.py migrate && \
-      python manage.py runserver 0.0.0.0:8000" # Defines the command to run when the container starts.
+    command: ./start_chat_app.sh --environment=local # Defines the command to run when the container starts.
     volumes:  # Mounts volumes from the host machine to the container.
       - .:/app  # Maps the current directory on the host to /app directory in the container.
     ports:  # Exposes ports from the container to the host.

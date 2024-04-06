@@ -32,8 +32,7 @@
                     <a href="{% url 'rooms' %}" class="nav-link text-white">Rooms</a>
                 </li>
                 <li class="nav-item">
-                    <!--TODO: fix  this logout, it sends a get request, it should be post, use onclick event-->
-                    <a href="{% url 'logout' %}" class="nav-link btn btn-outline-light">Log out</a>
+                    <a href="#" id="logout-link" class="nav-link btn btn-outline-light">Log out</a>
                 </li>
                 {% else %}
                 <li class="nav-item">
@@ -56,6 +55,22 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 {% block scripts %}
+<script>
+    document.getElementById('logout-link').addEventListener('click', function(event) {
+        event.preventDefault();
+        var form = document.createElement('form');
+        form.action = "{% url 'logout' %}";
+        form.method = 'POST';
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    });
+</script>
 {% endblock %}
 </body>
 </html>

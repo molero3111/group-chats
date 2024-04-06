@@ -26,5 +26,8 @@ RUN chmod +x wait-for-it.sh
 # copy project
 COPY . .
 
+# make start_notes_api.sh executable
+RUN chmod +x start_chat_app.sh
+
 # run wait-for-it.sh
 ENTRYPOINT ["./wait-for-it.sh", "db:5432", "--"]
