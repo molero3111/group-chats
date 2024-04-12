@@ -24,23 +24,15 @@
             <input type="password" name="password2" id="password2" value="{{ form.password2.value|default_if_none:'' }}" class="form-control"/>
         </div>
         {% if form.errors %}
-        {% for field in form %}
-        {% for error in field.errors %}
-        <div class="alert alert-danger mt-3">
-            <p>{{ error|escape }}</p>
-        </div>
-        {% endfor %}
-        {% endfor %}
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <div class="alert alert-danger mt-3">
+                        <p>{{ error|escape }}</p>
+                    </div>
+                {% endfor %}
+            {% endfor %}
         {% endif %}
         <button type="submit" class="btn btn-primary mt-3">Submit</button>
     </form>
 </div>
-{% endblock %}
-
-
-{% block scripts %}
-{{ block.super }}
-<script>
-    console.log('ERRORS', '{{form.errors}}', '{{form.non_field_errors}}');
-</script>
 {% endblock %}

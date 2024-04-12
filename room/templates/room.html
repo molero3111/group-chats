@@ -12,7 +12,7 @@
     <div class="col-lg-8 mx-auto p-4 bg-white rounded-xl">
         <div class="chat-messages mt-3" id="chat-messages">
             {% for message in messages %}
-            <div class="p-4 bg-light rounded-xl mb-3">
+            <div class="p-3  rounded-xl mb-3 w-50 {% if message.user == request.user %}text-right text-white ml-auto bg-dark{% else %}bg-light{% endif %}">
                 <p class="font-weight-bold">{{ message.user.username }}</p>
                 <p>{{ message.content }}</p>
             </div>
@@ -37,24 +37,29 @@
     const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
     const userName = JSON.parse(document.getElementById('json-username').textContent);
     const protocolPrefix = (window.location.protocol === "https:") ? "wss" : "ws";
-    let urlPrefix = '{{url_prefix}}';
-    urlPrefix =  urlPrefix ? `/${urlPrefix}` : '';
+    let urlPrefix = "{{url_prefix}}";
+    urlPrefix =  urlPrefix ? `/${urlPrefix}` : "";
     const wsRoute = `${protocolPrefix}://${window.location.host}${urlPrefix}/ws/${roomName}/`;
     console.log('ws route', wsRoute);
     const chatSocket = new WebSocket(wsRoute);
 
-    chatSocket.onmessage = function (e) {
+  chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        if (data.message) {
-            let html = '<div class="p-4 bg-light rounded-xl mb-3">';
-            html += '<p class="font-weight-bold">' + data.username + '</p>'
-            html += '<p>' + data.message + '</p></div>'
-            document.querySelector('#chat-messages').innerHTML += html;
-            scrollToBottom();
-        } else {
-            alert('Message is empty');
+        console.log("New message", data);
+        if (!data.message) {
+            return alert("Message is empty");
         }
+        let messageClass = 'bg-light';
+        if (data.username === userName) {
+            messageClass = 'bg-dark text-white text-right ml-auto';
+        }
+        let html = `<div class="p-3 rounded-xl mb-3 w-50 ${messageClass}">`;
+        html += `<p class="font-weight-bold">${data.username}</p>`;
+        html += `<p>${data.message}</p></div>`;
+        document.querySelector('#chat-messages').innerHTML += html;
+        scrollToBottom();
     }
+
 
     chatSocket.close = function (e) {
         console.log('onclose', e)
