@@ -13,15 +13,15 @@
         {% csrf_token %}
         <div class="form-group">
             <label for="username">Username</label>
-            <input type="text" name="username" id="username" class="form-control"/>
+            <input type="text" name="username" id="username" value="{{ form.username.value|default_if_none:'' }}" class="form-control"/>
         </div>
         <div class="form-group">
             <label for="password1">Password</label>
-            <input type="password" name="password1" id="password1" class="form-control"/>
+            <input type="password" name="password1" id="password1" value="{{ form.password1.value|default_if_none:'' }}" class="form-control"/>
         </div>
         <div class="form-group">
             <label for="password2">Password Confirmation</label>
-            <input type="password" name="password2" id="password2" class="form-control"/>
+            <input type="password" name="password2" id="password2" value="{{ form.password2.value|default_if_none:'' }}" class="form-control"/>
         </div>
         {% if form.errors %}
         {% for field in form %}
@@ -35,4 +35,12 @@
         <button type="submit" class="btn btn-primary mt-3">Submit</button>
     </form>
 </div>
+{% endblock %}
+
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    console.log('ERRORS', '{{form.errors}}', '{{form.non_field_errors}}');
+</script>
 {% endblock %}
