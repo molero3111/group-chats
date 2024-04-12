@@ -15,7 +15,7 @@ http {
         }
 
         location /chat-app/ws/ {
-            proxy_pass http://web:8000/;  # Points to your Django web service handling WebSocket connections
+            proxy_pass http://web:8000/ws/;  # Points to your Django web service handling WebSocket connections
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "Upgrade";

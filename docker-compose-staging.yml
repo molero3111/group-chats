@@ -14,6 +14,8 @@ services:
     depends_on:
       - db
       - redis
+    networks: # Specifies the networks the service should be connected to.
+      - django_chat_staging_network  # Connects this service to the "django_chat_network" network.
 
   nginx:
     image: nginx:latest
@@ -26,6 +28,8 @@ services:
       - 443:443  # Expose port 443 for SSL
     depends_on:
       - web
+    networks: # Specifies the networks the service should be connected to.
+      - django_chat_staging_network  # Connects this service to the "django_chat_network" network.
 
   db:
     image: postgis/postgis:13-3.1
@@ -34,6 +38,8 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
+    networks: # Specifies the networks the service should be connected to.
+      - django_chat_staging_network  # Connects this service to the "django_chat_network" network.
 
   redis:
     image: "redis:7.2.1"
@@ -41,6 +47,12 @@ services:
     env_file:
       - ./.env
     command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks: # Specifies the networks the service should be connected to.
+      - django_chat_staging_network  # Connects this service to the "django_chat_network" network.
 
 volumes:
   postgres_data:
+
+networks: # Defines Docker networks.
+  django_chat_staging_network: # Configuration for the "django_chat_network" network.
+    external: true  # Indicates that this network is defined externally and should be reused if it already exists.

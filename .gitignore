@@ -22,6 +22,7 @@ media/
 
 # Ignore static files (if you're using a CDN or separate static file server)
 static/
+staticfiles/
 
 # Ignore virtual environment
 django_chat_venv/
