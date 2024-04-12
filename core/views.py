@@ -4,10 +4,6 @@ from django.shortcuts import render, redirect
 from core.forms import SignUpForm
 
 
-def frontpage(request):
-    return render(request, 'frontpage.html')
-
-
 def signup(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
