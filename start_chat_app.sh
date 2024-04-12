@@ -30,6 +30,6 @@ if [ "$environment" = "local" ]; then
     # Run Django dev server for local development
     python manage.py runserver 0.0.0.0:8000
 else
-    # Run Gunicorn server for other environments (staging, production)
+    # Run daphne server for other environments (staging, production)
     daphne djangochat.asgi:application -b 0.0.0.0 -p 8000
 fi
