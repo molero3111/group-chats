@@ -1,7 +1,7 @@
 # Room-Based Chat App
 
-Welcome to the Room-Based Chat App! This web application allows users to join chat rooms and engage in real-time
-conversations with others.
+Welcome to the Room-Based Chat App! This web application allows users to join chat rooms and engage in real-time conversations with others.
+You can view the deployed version at: [https://emmanuelcodinghub.com/chat/](https://emmanuelcodinghub.com/chat/)
 
 ## Features
 
@@ -18,48 +18,26 @@ conversations with others.
 
 ## Getting Started
 
-To run this project locally, follow these steps:
+To run this project locally using Docker, follow these steps:
 
 ## 1. Clone this repository to your local machine:
 
     git clone https://github.com/molero3111/chat_in_django.git
     cd chat_in_django
 
-## 2. Create environment.py in djangochat app from environment.example.py file
+## 2. Create .env from .env.example file
 
-## 3. Create environment
+## 3. Run Docker Compose
 
-## 3.1 Using venv
+    docker-compose -p development-django-chat -f docker-compose-development.yml up --build
 
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    pip install -r requirements.txt
-
-## 3.2 Using conda
-
-    conda env create -f environment.yml
-    conda activate chat_in_django_env
-
-## 4. Apply database migrations
-
-    python manage.py migrate
-
-## 5. Load room fixtures
-
-    python manage.py loaddata fixtures/rooms_fixture.json
-    # NOTE: In case you get error that room table is not found, 
-    # execute 'python manage.py makemigrations room' command, then
-    # 'python manage.py migrate' again.
-
-## 6. Run local server
-
-    python manage.py runserver
+This command will build and run the containers. You can then access the app at [http://localhost:8000](http://localhost:8000).
 
 ## Usage
 
-    Create an account or log in if you already have one.
-    Browse available chat rooms and join the ones that interest you.
-    Start chatting with other users in real-time.
+- Create an account or log in if you already have one.
+- Browse available chat rooms and join the ones that interest you.
+- Start chatting with other users in real-time.
 
 
 
