@@ -30,7 +30,7 @@ To run this project locally using Docker, follow these steps:
 
 ## 3. Run Docker Compose
 
-    docker-compose -p development-django-chat -f docker-compose-development.yml up --build
+    docker compose -p development-django-chat -f docker-compose-development.yml up --build
 
 This command will build and run the containers. You can then access the app at [http://localhost:8000](http://localhost:8000).
 
