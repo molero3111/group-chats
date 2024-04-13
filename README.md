@@ -14,7 +14,8 @@ You can view the deployed version at: [https://emmanuelcodinghub.com/chat/](http
 - **Channels**: Extends Django to handle WebSocket connections and real-time events.
 - **Daphne**: An ASGI (Asynchronous Server Gateway Interface) server for serving Django Channels applications.
 - **Bootstrap**: Used for styling the frontend.
-- **SQLite**: The database for storing user data and chat messages.
+- **PostgresSQL**: The database for storing user data and chat messages.
+- **Redis**: The cache system used in the websocket channel layer
 
 ## Getting Started
 
