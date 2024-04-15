@@ -161,3 +161,7 @@ CACHES = {
         }
     }
 }
+
+AUTHENTICATION_BACKENDS = [
+    'core.authentication_backends.CustomAuthenticationBackend',
+]
