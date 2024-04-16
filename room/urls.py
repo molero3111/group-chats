@@ -1,8 +1,8 @@
 from django.urls import path
-
-from . import views
+from room.views import RoomsView, RoomView
 
 urlpatterns = [
-    path('', views.rooms, name='rooms'),
-    path('<slug:slug>', views.room, name='room'),
+    path('', RoomsView.as_view(), name='rooms'),
+    path('<slug:slug>/', RoomView.as_view(), name='room'),
 ]
+
