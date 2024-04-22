@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-redis
+spec:
+  selector:
+      pod: chat-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379

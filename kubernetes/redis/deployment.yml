@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  labels:
+    deployment: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: chat-redis
+  template:
+    metadata:
+      labels:
+        pod: chat-redis
+    spec:
+      containers:
+        - name: redis-container
+          image: redis:7.2.1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 6379 # change to value from .env
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chat-secret
+                  key: REDIS_PASSWORD  # Assuming you have REDIS_PASSWORD stored in the chat-secret secret
+          command: [ "redis-server", "--requirepass", "$(REDIS_PASSWORD)" ]  # Set the Redis password
