@@ -20,7 +20,7 @@ RUN pip install -r requirements.txt
 # copy project
 COPY . .
 
-# make start_notes_api.sh executable
+# make start_chat_app.sh executable
 RUN chmod +x start_chat_app.sh
 
 # command to start Daphne

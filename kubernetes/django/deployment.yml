@@ -15,7 +15,8 @@ spec:
         app: chat
     spec:
       containers:
-        - image: molero3111/django-chat:v1.1.2
+        - image: molero3111/django-chat:v1
+          imagePullPolicy: Always
           name: chat
           envFrom:
             - secretRef:
