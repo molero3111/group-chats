@@ -17,11 +17,17 @@ RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
+# copy wait-for-it.sh
+COPY ./wait-for-it.sh .
+
+# make wait-for-it.sh executable
+RUN chmod +x wait-for-it.sh
+
 # copy project
 COPY . .
 
 # make start_chat_app.sh executable
 RUN chmod +x start_chat_app.sh
 
-# command to start Daphne
-CMD ["./start_chat_app.sh"]
+# run wait-for-it.sh
+ENTRYPOINT ["./wait-for-it.sh", "db:5432", "--"]
