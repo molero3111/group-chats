@@ -15,6 +15,7 @@ db.sqlite3
 .env
 .env-kuber
 kubernetes/django/config-map.yml
+kubernetes/django/ingress.yml
 
 # Ignore secret keys and sensitive information
 *.secret_key
