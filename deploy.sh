@@ -22,7 +22,7 @@ git pull
 
 # Rebuild Docker containers with new changes
 echo "Rebuilding Docker containers ($CONTAINER_NAME) with new changes... docker compose file: $DOCKER_COMPOSE_FILE"
-docker-compose -p $CONTAINER_NAME -f $DOCKER_COMPOSE_FILE up --build -d
+docker compose -p $CONTAINER_NAME -f $DOCKER_COMPOSE_FILE up --build -d
 
 # Clean up unused Docker resources without asking for confirmation
 echo "Cleaning up unused Docker resources..."
