@@ -5,7 +5,7 @@ metadata:
   labels:
     app: chat
 spec:
-  type: ClusterIP  # Change from LoadBalancer to ClusterIP
+  type: NodePort
   selector:
       app: chat
   ports:
