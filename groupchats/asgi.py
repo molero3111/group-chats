@@ -1,6 +1,6 @@
 import os
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangochat.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'groupchats.settings')
 
 from django.core.asgi import get_asgi_application  # noqa: E402
 

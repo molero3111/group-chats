@@ -18,13 +18,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(' ')
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(' ')
 
-URL_PREFIX = config('URL_PREFIX', default='chat-app', cast=str)
-if URL_PREFIX:
-    FORCE_SCRIPT_NAME = f'/{URL_PREFIX}'
-URL_PREFIX_FORWARD_SLASH = f'{URL_PREFIX}/' if URL_PREFIX else ''
-LOGOUT_REDIRECT_URL = f'/{URL_PREFIX_FORWARD_SLASH}'
-LOGIN_REDIRECT_URL = f'/{URL_PREFIX_FORWARD_SLASH}rooms/'
-LOGIN_URL = f'/{URL_PREFIX_FORWARD_SLASH}login/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/rooms/'
+LOGIN_URL = '/login/'
 
 # Application definition
 
@@ -51,7 +47,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'djangochat.urls'
+ROOT_URLCONF = 'groupchats.urls'
 
 TEMPLATES = [
     {
@@ -69,8 +65,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'djangochat.wsgi.application'
-ASGI_APPLICATION = 'djangochat.asgi.application'  # for the chat, long-running connections
+WSGI_APPLICATION = 'groupchats.wsgi.application'
+ASGI_APPLICATION = 'groupchats.asgi.application'  # for the chat, long-running connections
 
 # Define Redis connection details using environment variables
 REDIS_HOST = config('REDIS_HOST', default='redis', cast=str)

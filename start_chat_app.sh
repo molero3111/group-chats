@@ -31,5 +31,5 @@ if [ "$environment" = "local" ]; then
     python manage.py runserver 0.0.0.0:8000
 else
     # Run daphne server for other environments (staging, production)
-    daphne djangochat.asgi:application -b 0.0.0.0 -p 8000
+    daphne groupchats.asgi:application -b 0.0.0.0 -p 8000
 fi

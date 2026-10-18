@@ -9,8 +9,8 @@ from core.forms import SignUpForm
 class FrontpageView(View):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            return redirect('rooms/')
-        return redirect('login/')
+            return redirect('rooms')
+        return redirect('login')
 
 
 class SignupView(View):

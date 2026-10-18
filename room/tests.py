@@ -30,3 +30,10 @@ class RoomViewTests(TestCase):
         self.assertContains(response, 'second')
         self.assertContains(response, '&lt;b&gt;third&lt;/b&gt;')
         self.assertNotContains(response, '<b>third</b>')
+
+
+class WebsocketRoutingTests(TestCase):
+    def test_websocket_route_has_no_prefix(self):
+        from room.routing import websocket_urlpatterns
+
+        self.assertTrue(any(p.pattern.match('ws/work/') for p in websocket_urlpatterns))

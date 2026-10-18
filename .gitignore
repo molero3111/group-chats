@@ -42,7 +42,7 @@ local_settings.py
 docs/_build/
 
 # Environment file
-djangochat/environment.py
+groupchats/environment.py
 
 # Docker
 chat-image:latest

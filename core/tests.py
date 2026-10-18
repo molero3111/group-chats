@@ -31,3 +31,19 @@ class LoginTests(TestCase):
         User.objects.create_user(username='ada', email='ada@example.com', password=PASSWORD)
 
         self.assertTrue(self.client.login(username='ada@example.com', password=PASSWORD))
+
+
+class RootPathTests(TestCase):
+    def test_login_redirect_is_root_relative(self):
+        from django.conf import settings
+
+        self.assertEqual(settings.LOGIN_URL, '/login/')
+        self.assertEqual(settings.LOGIN_REDIRECT_URL, '/rooms/')
+        self.assertEqual(settings.LOGOUT_REDIRECT_URL, '/')
+
+    def test_frontpage_redirects_authenticated_to_rooms(self):
+        self.client.force_login(User.objects.create_user(username='ada', password=PASSWORD))
+
+        response = self.client.get('/')
+
+        self.assertRedirects(response, '/rooms/', fetch_redirect_response=False)
