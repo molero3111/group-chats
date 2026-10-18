@@ -1,5 +1,8 @@
 import os
 
+# Keep tests hermetic: never read a developer's .env.
+os.environ['ENV_FILE'] = os.devnull
+
 # Production settings require these; set test-only values before importing them.
 os.environ.setdefault('SECRET_KEY', 'test-only-secret-key')
 os.environ.setdefault('DEBUG', 'False')
