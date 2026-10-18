@@ -76,7 +76,7 @@ class RoomMessagesView(View):
     def post(self, request, slug):
         room = get_object_or_404(Room, slug=slug)
         content = _posted_content(request)
-        if content is None:
+        if content is None or '\x00' in content:  # PostgreSQL text cannot hold NUL
             return JsonResponse({'error': 'invalid_body'}, status=400)
         content = content.strip()
         if not content:
@@ -87,7 +87,8 @@ class RoomMessagesView(View):
         # The author is always the session user, never anything the client sends.
         message = Message.objects.create(room=room, user=request.user, content=content)
         payload = message_payload(message)
-        transaction.on_commit(lambda: get_transport().publish(room, 'message.new', payload))
+        # robust: a broken transport is logged, never turned into a 500 for a message already saved.
+        transaction.on_commit(lambda: get_transport().publish(room, 'message.new', payload), robust=True)
         return JsonResponse(payload, status=201)
 
 

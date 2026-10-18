@@ -112,6 +112,27 @@ class RoomMessagesPostTests(TestCase):
                 self.assertEqual(response.json(), {'error': error})
         self.assertFalse(Message.objects.exists())
 
+    def test_nul_character_is_400(self):
+        # PostgreSQL text columns reject NUL bytes; this must not become a 500.
+        self.client.force_login(self.ada)
+
+        response = self.client.post(self.url, {'content': 'a\x00b'}, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'error': 'invalid_body'})
+        self.assertFalse(Message.objects.exists())
+
+    def test_publish_failure_still_returns_201(self):
+        self.client.force_login(self.ada)
+        self.transport.publish.side_effect = RuntimeError('transport broke')
+
+        # assertLogs must be outermost: captured callbacks only run when the inner context exits.
+        with self.assertLogs(level='ERROR'), self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.url, {'content': 'hi'})
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Message.objects.count(), 1)
+
     def test_4000_characters_is_accepted(self):
         self.client.force_login(self.ada)
 
