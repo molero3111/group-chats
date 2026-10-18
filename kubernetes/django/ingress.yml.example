@@ -1,20 +1,20 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: chat-ingress
+  name: group-chats-ingress
 spec:
   rules:
-  - host: emmanuelcodinghub.com
+  - host: group-chats.emmanuelcodinghub.com
     http:
       paths:
-      - path: /chat-app
+      - path: /group-chats
         pathType: Prefix
         backend:
           service:
-            name: chat-app
+            name: group-chats
             port:
               number: 8000
   tls:
   - hosts:
-    - emmanuelcodinghub.com
+    - group-chats.emmanuelcodinghub.com
     secretName: tls-secret-name

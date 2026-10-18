@@ -15,18 +15,18 @@ spec:
     spec:
       containers:
         - name: postgres-container
-          image: postgis/postgis:13-3.1
+          image: postgres:18-alpine
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: chat-secret
+                  name: group-chats-secret
                   key: POSTGRES_PASSWORD
           ports:
             - containerPort: 5432
           volumeMounts:
             - name: postgres-volume-mount
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
       volumes:
         - name: postgres-volume-mount
           persistentVolumeClaim:
