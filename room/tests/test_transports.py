@@ -123,6 +123,20 @@ class ChannelsTransportTests(TestCase):
         received = async_to_sync(layer.receive)(channel)
         self.assertEqual(received, {'type': 'chat.message', 'event': 'message.new', 'payload': payload})
 
+    def test_channels_publish_failure_is_logged_not_raised(self):
+        user = User.objects.create_user(username='ada', password='pw')
+        room = Room.objects.create(name='Work', slug='work')
+        payload = message_payload(Message.objects.create(room=room, user=user, content='hello'))
+        broken = mock.Mock()
+        broken.group_send = mock.AsyncMock(side_effect=ConnectionError('redis down'))
+
+        with mock.patch('room.transports.channels.get_channel_layer', return_value=broken), \
+                self.assertLogs('room.transports', 'WARNING') as logs:
+            ChannelsTransport().publish(room, 'message.new', payload)
+
+        self.assertIn(f'chat_{room.id}', '\n'.join(logs.output))
+        self.assertNotIn('hello', '\n'.join(logs.output))
+
 
 class GetTransportTests(TestCase):
     def setUp(self):
