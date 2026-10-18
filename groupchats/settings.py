@@ -168,6 +168,14 @@ CACHES = {
     }
 }
 
+# Realtime transport: 'channels' (Django Channels over Redis) or 'columba' (hosted fan-out service).
+CHAT_TRANSPORT = config('CHAT_TRANSPORT', default='channels', cast=str)
+COLUMBA_URL = config('COLUMBA_URL', default='', cast=str).rstrip('/')  # server-side publish base URL
+COLUMBA_SOCKET_URL = config('COLUMBA_SOCKET_URL', default='', cast=str)  # browser-facing .../socket URL
+COLUMBA_APP_ID = config('COLUMBA_APP_ID', default='', cast=str)
+COLUMBA_API_KEY = config('COLUMBA_API_KEY', default='', cast=str)
+COLUMBA_SIGNING_SECRET = config('COLUMBA_SIGNING_SECRET', default='', cast=str)
+
 AUTHENTICATION_BACKENDS = [
     'core.authentication_backends.CustomAuthenticationBackend',
 ]

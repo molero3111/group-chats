@@ -20,6 +20,18 @@ class ProductionSettingsTests(SimpleTestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_columba_without_credentials_fails_at_startup(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith('COLUMBA_')}
+        env.update({'ENV_FILE': '/nonexistent/.env', 'SECRET_KEY': 'x', 'POSTGRES_PASSWORD': 'x',
+                    'REDIS_PASSWORD': 'x', 'DJANGO_SETTINGS_MODULE': 'groupchats.settings',
+                    'CHAT_TRANSPORT': 'columba'})
+        result = subprocess.run([sys.executable, '-c', 'import django; django.setup()'],
+                                cwd=ROOT, env=env, capture_output=True, text=True)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('ImproperlyConfigured', result.stderr)
+        self.assertIn('COLUMBA_API_KEY', result.stderr)
+
     def test_docker_build_context_excludes_local_secrets(self):
         ignored = (ROOT / '.dockerignore').read_text().split()
 
