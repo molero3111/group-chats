@@ -25,6 +25,17 @@ class ProductionSettingsTests(SimpleTestCase):
             self.assertIn(entry, ignored)
 
 
+class DatabaseDefaultsTests(SimpleTestCase):
+    def test_database_defaults_use_group_chats_names(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith('POSTGRES_')}
+        env.update({'ENV_FILE': '/nonexistent/.env', 'SECRET_KEY': 'x', 'POSTGRES_PASSWORD': 'x',
+                    'REDIS_PASSWORD': 'x', 'DJANGO_SETTINGS_MODULE': 'groupchats.settings'})
+        code = "from django.conf import settings as s; d = s.DATABASES['default']; print(d['NAME'], d['USER'])"
+        result = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env, capture_output=True, text=True)
+
+        self.assertEqual(result.stdout.split(), ['group_chats', 'group_chats'], result.stderr)
+
+
 class RepositoryHygieneTests(SimpleTestCase):
     def test_nginx_ssl_and_venv_are_gitignored(self):
         result = subprocess.run(['git', 'check-ignore', '--no-index', '-q', 'nginx/ssl/server.key'], cwd=ROOT)

@@ -96,8 +96,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'HOST': config('POSTGRES_HOST', default='db', cast=str),
         'PORT': config('POSTGRES_PORT', default='5432', cast=str),
-        'NAME': config('POSTGRES_DB', default='chat_db', cast=str),
-        'USER': config('POSTGRES_USER', default='chat_admin', cast=str),
+        'NAME': config('POSTGRES_DB', default='group_chats', cast=str),
+        'USER': config('POSTGRES_USER', default='group_chats', cast=str),
         'PASSWORD': config('POSTGRES_PASSWORD', cast=str),
     }
 }
