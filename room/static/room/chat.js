@@ -26,7 +26,8 @@
         rendered.add(id);
         lastId = Math.max(lastId, id);
     }
-    syncedId = lastId;
+    // The room's newest id when the page was rendered, which is higher than lastId on an older ?page.
+    syncedId = Math.max(lastId, config.latest_id);
 
     function setStatus(text) {
         status.textContent = text;

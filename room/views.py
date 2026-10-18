@@ -54,6 +54,8 @@ class RoomView(View):
                 'transport': get_transport().client_config(request, room_item),
                 'messages_url': reverse('room-messages', args=[room_item.slug]),
                 'user_id': request.user.id,
+                # Catch-up starts here, not at the newest id on screen: an older ?page shows old ids.
+                'latest_id': messages_query.values_list('id', flat=True).first() or 0,
             },
         })
 

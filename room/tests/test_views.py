@@ -96,6 +96,22 @@ class RoomPageConfigTests(TestCase):
         self.assertNotContains(response, COLUMBA['COLUMBA_API_KEY'])
         self.assertNotContains(response, COLUMBA['COLUMBA_SIGNING_SECRET'])
 
+    def test_config_carries_the_rooms_latest_id_on_any_page(self):
+        Message.objects.bulk_create(Message(room=self.room, user=self.user, content=str(i)) for i in range(150))
+        latest = Message.objects.filter(room=self.room).latest('id').id
+        Message.objects.create(room=Room.objects.create(name='Art', slug='art'), user=self.user, content='elsewhere')
+
+        for page in ['1', '2']:
+            with self.subTest(page=page):
+                response = self.client.get(reverse('room', args=['work']), {'page': page})
+
+                self.assertEqual(self.chat_config(response)['latest_id'], latest)
+
+    def test_config_latest_id_is_zero_for_an_empty_room(self):
+        response = self.client.get(reverse('room', args=['work']))
+
+        self.assertEqual(self.chat_config(response)['latest_id'], 0)
+
     def test_history_messages_carry_ids(self):
         message = Message.objects.create(room=self.room, user=self.user, content='hi')
 
