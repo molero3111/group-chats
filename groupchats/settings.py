@@ -1,13 +1,14 @@
 import os
 from pathlib import Path
 
-from decouple import Config, RepositoryEnv
+from decouple import Config, RepositoryEmpty, RepositoryEnv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Read only this project's .env (or ENV_FILE); the process environment takes precedence.
-config = Config(RepositoryEnv(os.environ.get('ENV_FILE', BASE_DIR / '.env')))
+ENV_FILE = Path(os.environ.get('ENV_FILE', BASE_DIR / '.env'))
+config = Config(RepositoryEnv(ENV_FILE) if ENV_FILE.is_file() else RepositoryEmpty())
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/

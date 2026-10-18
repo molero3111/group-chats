@@ -1,3 +1,8 @@
+.env
+.venv/
+.git
+.claude/
+.superpowers/
 django_chat_venv/
 static/
 staticfiles/
