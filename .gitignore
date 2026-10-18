@@ -49,4 +49,4 @@ chat-image:latest
 
 # Nginx
 nginx.conf
-nginx/ssl
+nginx/ssl.venv/
