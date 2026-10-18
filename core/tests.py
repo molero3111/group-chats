@@ -1,3 +1,33 @@
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
 
-# Create your tests here.
+PASSWORD = 'a-Long-test-passw0rd'
+
+
+class FrontpageTests(TestCase):
+    def test_frontpage_redirects_anonymous_to_login(self):
+        response = self.client.get(reverse('frontpage'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'].endswith('login/'))
+
+
+class SignupTests(TestCase):
+    def test_signup_creates_user_and_logs_in(self):
+        response = self.client.post(reverse('signup'), {
+            'email': 'ada@example.com',
+            'password1': PASSWORD,
+            'password2': PASSWORD,
+        }, follow=True)
+
+        self.assertTrue(User.objects.filter(email='ada@example.com', username='ada').exists())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['user'].is_authenticated)
+
+
+class LoginTests(TestCase):
+    def test_login_with_email(self):
+        User.objects.create_user(username='ada', email='ada@example.com', password=PASSWORD)
+
+        self.assertTrue(self.client.login(username='ada@example.com', password=PASSWORD))
