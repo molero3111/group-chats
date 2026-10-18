@@ -47,3 +47,17 @@ class RootPathTests(TestCase):
         response = self.client.get('/')
 
         self.assertRedirects(response, '/rooms/', fetch_redirect_response=False)
+
+
+class StaticFilesTests(TestCase):
+    def test_whitenoise_installed(self):
+        from django.conf import settings
+
+        from groupchats import settings as production
+
+        security = settings.MIDDLEWARE.index('django.middleware.security.SecurityMiddleware')
+        self.assertEqual(settings.MIDDLEWARE[security + 1], 'whitenoise.middleware.WhiteNoiseMiddleware')
+        self.assertEqual(
+            production.STORAGES['staticfiles']['BACKEND'],
+            'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        )
