@@ -1,7 +1,9 @@
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+from unittest import skipUnless
 
 from django.test import SimpleTestCase
 
@@ -36,6 +38,7 @@ class DatabaseDefaultsTests(SimpleTestCase):
         self.assertEqual(result.stdout.split(), ['group_chats', 'group_chats'], result.stderr)
 
 
+@skipUnless(shutil.which('git'), 'needs git, which the app image does not have')
 class RepositoryHygieneTests(SimpleTestCase):
     def test_nginx_ssl_and_venv_are_gitignored(self):
         result = subprocess.run(['git', 'check-ignore', '--no-index', '-q', 'nginx/ssl/server.key'], cwd=ROOT)
