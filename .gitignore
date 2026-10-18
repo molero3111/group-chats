@@ -24,7 +24,7 @@ kubernetes/django/ingress.yml
 media/
 
 # Ignore static files
-static/
+/static/
 staticfiles/
 
 # Ignore virtual environment

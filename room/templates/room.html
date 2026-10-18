@@ -3,30 +3,31 @@
 {% block title %} {{ room.name }} | {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-lg-12 text-center">
-            <h1 class="display-4">{{ room.name }}</h1>
-        </div>
-    </div>
-    <div class="col-lg-8 mx-auto p-4 bg-white rounded-xl">
-        <div class="chat-messages mt-3" id="chat-messages">
-            {% for message in messages|dictsort:"id" %}
-            <div class="p-3 rounded-xl mb-3 w-50 {% if message.user == request.user %}text-right text-white ml-auto bg-dark{% else %}bg-light{% endif %}">
-                <p class="font-weight-bold">{{ message.user.username }}</p>
-                <p>{{ message.content }}</p>
+<section class="chat card shadow-sm flex-grow-1">
+    <header class="card-header d-flex align-items-center gap-3 bg-body">
+        <a href="{% url 'rooms' %}" class="btn btn-sm btn-outline-secondary" aria-label="Back to rooms">&larr;</a>
+        <h1 class="h5 mb-0"># {{ room.name }}</h1>
+    </header>
+    <div class="chat-messages card-body" id="chat-messages" aria-live="polite">
+        {% for message in messages|dictsort:"id" %}
+        <div class="msg{% if message.user == request.user %} msg-mine{% endif %}" data-id="{{ message.id }}">
+            <div class="msg-meta">
+                <span class="msg-author">{{ message.user.username }}</span>
+                <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|time:'H:i' }}</time>
             </div>
-            {% endfor %}
+            <div class="msg-body">{{ message.content }}</div>
         </div>
-        <div class="col-lg-8 mt-4 mx-auto p-4 bg-white rounded-xl">
-            <form method="post" action="rooms" class="form-inline">
-                <input type="text" name="content" class="form-control flex-1 mr-3" placeholder="Your message..."
-                       id="chat-message-input">
-                <button id="chat-message-btn" class="btn btn-primary px-5 py-3 rounded-xl">Submit</button>
-            </form>
-        </div>
+        {% endfor %}
     </div>
-</div>
+    <footer class="card-footer bg-body">
+        <form class="d-flex gap-2" autocomplete="off">
+            <label for="chat-message-input" class="visually-hidden">Message</label>
+            <input type="text" name="content" class="form-control" placeholder="Write a message…"
+                   id="chat-message-input">
+            <button id="chat-message-btn" class="btn btn-primary px-4">Send</button>
+        </form>
+    </footer>
+</section>
 {% endblock %}
 
 {% block scripts %}
@@ -40,31 +41,26 @@
     const wsRoute = `${protocolPrefix}://${window.location.host}/ws/${roomName}/`;
     const chatSocket = new WebSocket(wsRoute);
 
-  chatSocket.onmessage = function (e) {
+    chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        console.log("New message", data);
         if (!data.message) {
-            return alert("Message is empty");
+            return;
         }
-        let messageClass = 'bg-light';
-        if (data.username === userName) {
-            messageClass = 'bg-dark text-white text-right ml-auto';
-        }
-        let html = `<div class="p-3 rounded-xl mb-3 w-50 ${messageClass}">`;
-        html += `<p class="font-weight-bold">${data.username}</p>`;
-        html += `<p>${data.message}</p></div>`;
+        const mine = data.username === userName ? ' msg-mine' : '';
+        let html = `<div class="msg${mine}">`;
+        html += `<div class="msg-meta"><span class="msg-author">${data.username}</span></div>`;
+        html += `<div class="msg-body">${data.message}</div></div>`;
         document.querySelector('#chat-messages').innerHTML += html;
         scrollToBottom();
     }
 
-
-    chatSocket.close = function (e) {
-        console.log('onclose', e)
-    }
     document.querySelector('#chat-message-btn').onclick = function (e) {
         e.preventDefault();
         const messageInputDom = document.querySelector('#chat-message-input');
         const message = messageInputDom.value;
+        if (!message.trim()) {
+            return;
+        }
         chatSocket.send(JSON.stringify({
             'message': message,
             'username': userName,

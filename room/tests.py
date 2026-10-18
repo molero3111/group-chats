@@ -37,3 +37,15 @@ class WebsocketRoutingTests(TestCase):
         from room.routing import websocket_urlpatterns
 
         self.assertTrue(any(p.pattern.match('ws/work/') for p in websocket_urlpatterns))
+
+
+class RoomLayoutTests(TestCase):
+    def test_room_page_keeps_chat_ids(self):
+        user = User.objects.create_user(username='ada', password='pw')
+        Room.objects.create(name='Work', slug='work')
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('room', args=['work']))
+
+        for element_id in ['chat-messages', 'chat-message-input', 'chat-message-btn']:
+            self.assertContains(response, f'id="{element_id}"')

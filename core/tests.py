@@ -61,3 +61,20 @@ class StaticFilesTests(TestCase):
             production.STORAGES['staticfiles']['BACKEND'],
             'whitenoise.storage.CompressedManifestStaticFilesStorage',
         )
+
+
+class LayoutTests(TestCase):
+    def test_base_uses_bootstrap_5(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertContains(response, 'bootstrap@5.3.8')
+        self.assertContains(response, 'integrity="sha384-')
+        self.assertNotContains(response, 'jquery')
+
+    def test_logout_is_post_form(self):
+        self.client.force_login(User.objects.create_user(username='ada', password=PASSWORD))
+
+        response = self.client.get(reverse('rooms'))
+
+        self.assertContains(response, f'<form method="post" action="{reverse("logout")}"')
+        self.assertContains(response, 'csrfmiddlewaretoken')
