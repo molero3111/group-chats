@@ -1,45 +1,50 @@
-# Room-Based Chat App
+# group-chats
 
-Welcome to the Room-Based Chat App! This web application allows users to join chat rooms and engage in real-time conversations with others.
-You can view the deployed version at: [https://emmanuelcodinghub.com/chat/](https://emmanuelcodinghub.com/chat/)
+A room-based chat app: sign up, pick a room and talk in real time with everyone in it.
+Live at [https://group-chats.emmanuelcodinghub.com](https://group-chats.emmanuelcodinghub.com).
 
 ## Features
 
-- Join chat rooms.
-- Real-time messaging using WebSocket connections.
+- Email sign-up and login.
+- Chat rooms with persistent history.
+- Real-time messaging over WebSockets.
 
-## Technologies Used
+## Technologies
 
-- **Django**: The web framework for the backend.
-- **Channels**: Extends Django to handle WebSocket connections and real-time events.
-- **Daphne**: An ASGI (Asynchronous Server Gateway Interface) server for serving Django Channels applications.
-- **Bootstrap**: Used for styling the frontend.
-- **PostgresSQL**: The database for storing user data and chat messages.
-- **Redis**: The cache system used in the websocket channel layer
+- **Python 3.14 / Django 6.1**: the web framework.
+- **Channels + Daphne**: WebSocket handling and the ASGI server.
+- **PostgreSQL 18**: users, rooms and messages.
+- **Redis 8**: the Channels layer and the cache.
+- **WhiteNoise**: static files.
+- **Bootstrap 5.3**: styling.
 
-## Getting Started
+## Run it locally with Docker
 
-To run this project locally using Docker, follow these steps:
+1. Clone the repository:
 
-## 1. Clone this repository to your local machine:
+       git clone https://github.com/molero3111/chat_in_django.git
+       cd chat_in_django
 
-    git clone https://github.com/molero3111/chat_in_django.git
-    cd chat_in_django
+2. Create `.env` from `.env.example` and replace every `change-me` value.
 
-## 2. Create .env from .env.example file
+3. Start the stack:
 
-## 3. Run Docker Compose
+       docker compose -p group-chats-dev -f docker-compose-development.yml up --build
 
-    docker compose -p development-django-chat -f docker-compose-development.yml up --build
+   The app is at [http://localhost:8000](http://localhost:8000), with the rooms from `fixtures/` loaded.
 
-This command will build and run the containers. You can then access the app at [http://localhost:8000](http://localhost:8000).
+## Run the tests
 
-## Usage
+The test settings use in-memory SQLite and an in-memory channel layer, so no services are needed:
 
-- Create an account or log in if you already have one.
-- Browse available chat rooms and join the ones that interest you.
-- Start chatting with other users in real-time.
+    uv venv -p 3.14 .venv
+    uv pip install -p .venv/bin/python -r requirements-dev.txt
+    .venv/bin/python manage.py test --settings=groupchats.settings_test
 
+CI runs the same command on every push and pull request.
 
+## Deploying
 
-
+`start.sh` runs migrations, optionally loads fixtures (`--load-fixtures`), collects static files and starts Daphne
+(or `runserver` with `--environment=local`). Kubernetes manifests are in `kubernetes/`, and an nginx reverse-proxy
+example is in `nginx/nginx.conf.example`. Both expect the app at the root of its own host.
