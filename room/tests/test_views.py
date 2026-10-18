@@ -51,6 +51,59 @@ class RoomLayoutTests(TestCase):
             self.assertContains(response, f'id="{element_id}"')
 
 
+class RoomPageConfigTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='ada', password='pw')
+        self.room = Room.objects.create(name='Work', slug='work')
+        self.client.force_login(self.user)
+
+    def chat_config(self, response):
+        import json
+        import re
+        match = re.search(r'<script id="chat-config" type="application/json">(.*?)</script>',
+                          response.content.decode())
+        self.assertIsNotNone(match, 'no chat-config json_script')
+        return json.loads(match.group(1))
+
+    def test_channels_mode(self):
+        response = self.client.get(reverse('room', args=['work']))
+
+        config = self.chat_config(response)
+        self.assertEqual(config['transport'], {'kind': 'channels', 'path': '/ws/work/'})
+        self.assertEqual(config['messages_url'], reverse('room-messages', args=['work']))
+        self.assertEqual(config['user_id'], self.user.id)
+        self.assertContains(response, 'room/chat.js')
+        self.assertNotContains(response, 'phoenix-1.8.15.js')
+        self.assertNotContains(response, 'new WebSocket')
+        self.assertContains(response, 'Realtime: Django Channels')
+
+    def test_columba_mode(self):
+        from django.test import override_settings
+
+        from room.tests.test_transports import COLUMBA
+        with override_settings(CHAT_TRANSPORT='columba', **COLUMBA):
+            response = self.client.get(reverse('room', args=['work']))
+
+        config = self.chat_config(response)
+        self.assertEqual(config['transport'], {
+            'kind': 'columba',
+            'socket_url': COLUMBA['COLUMBA_SOCKET_URL'],
+            'topic': f'room:{self.room.id}',
+            'token_url': reverse('room-token', args=['work']),
+        })
+        self.assertContains(response, 'room/vendor/phoenix-1.8.15.js')
+        self.assertContains(response, 'Realtime: Columba')
+        self.assertNotContains(response, COLUMBA['COLUMBA_API_KEY'])
+        self.assertNotContains(response, COLUMBA['COLUMBA_SIGNING_SECRET'])
+
+    def test_history_messages_carry_ids(self):
+        message = Message.objects.create(room=self.room, user=self.user, content='hi')
+
+        response = self.client.get(reverse('room', args=['work']))
+
+        self.assertContains(response, f'data-id="{message.id}"')
+
+
 class SeedRoomsCommandTests(TestCase):
     def test_seeds_fixture_rooms_into_empty_table(self):
         from django.core.management import call_command

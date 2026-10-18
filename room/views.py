@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 
@@ -48,7 +49,12 @@ class RoomView(View):
 
         return render(request, 'room.html', {
             'room': room_item,
-            'messages': messages
+            'messages': messages,
+            'chat_config': {
+                'transport': get_transport().client_config(request, room_item),
+                'messages_url': reverse('room-messages', args=[room_item.slug]),
+                'user_id': request.user.id,
+            },
         })
 
 

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %} {{ room.name }} | {% endblock %}
 
@@ -7,6 +8,10 @@
     <header class="card-header d-flex align-items-center gap-3 bg-body">
         <a href="{% url 'rooms' %}" class="btn btn-sm btn-outline-secondary" aria-label="Back to rooms">&larr;</a>
         <h1 class="h5 mb-0"># {{ room.name }}</h1>
+        <span class="ms-auto d-flex align-items-center gap-2 small">
+            <span id="chat-status" class="text-body-secondary" aria-live="polite"></span>
+            <span class="badge text-bg-secondary">Realtime: {% if chat_config.transport.kind == 'columba' %}Columba{% else %}Django Channels{% endif %}</span>
+        </span>
     </header>
     <div class="chat-messages card-body" id="chat-messages" aria-live="polite">
         {% for message in messages|dictsort:"id" %}
@@ -20,10 +25,11 @@
         {% endfor %}
     </div>
     <footer class="card-footer bg-body">
-        <form class="d-flex gap-2" autocomplete="off">
+        <div id="chat-error" class="text-danger small mb-2" role="alert" hidden></div>
+        <form id="chat-form" class="d-flex gap-2" autocomplete="off">
             <label for="chat-message-input" class="visually-hidden">Message</label>
             <input type="text" name="content" class="form-control" placeholder="Write a message…"
-                   id="chat-message-input">
+                   id="chat-message-input" maxlength="4000">
             <button id="chat-message-btn" class="btn btn-primary px-4">Send</button>
         </form>
     </footer>
@@ -32,48 +38,9 @@
 
 {% block scripts %}
 {{ block.super }}
-{{ room.slug|json_script:"json-roomname" }}
-{{ request.user.username|json_script:"json-username" }}
-<script>
-    const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
-    const userName = JSON.parse(document.getElementById('json-username').textContent);
-    const protocolPrefix = (window.location.protocol === "https:") ? "wss" : "ws";
-    const wsRoute = `${protocolPrefix}://${window.location.host}/ws/${roomName}/`;
-    const chatSocket = new WebSocket(wsRoute);
-
-    chatSocket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
-        if (!data.message) {
-            return;
-        }
-        const mine = data.username === userName ? ' msg-mine' : '';
-        let html = `<div class="msg${mine}">`;
-        html += `<div class="msg-meta"><span class="msg-author">${data.username}</span></div>`;
-        html += `<div class="msg-body">${data.message}</div></div>`;
-        document.querySelector('#chat-messages').innerHTML += html;
-        scrollToBottom();
-    }
-
-    document.querySelector('#chat-message-btn').onclick = function (e) {
-        e.preventDefault();
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
-        if (!message.trim()) {
-            return;
-        }
-        chatSocket.send(JSON.stringify({
-            'message': message,
-            'username': userName,
-            'room': roomName
-        }));
-        messageInputDom.value = '';
-    }
-
-    function scrollToBottom() {
-        const chat_messages_div = document.querySelector('#chat-messages');
-        chat_messages_div.scrollTop = chat_messages_div.scrollHeight;
-    }
-
-    scrollToBottom();
-</script>
+{{ chat_config|json_script:"chat-config" }}
+{% if chat_config.transport.kind == 'columba' %}
+<script src="{% static 'room/vendor/phoenix-1.8.15.js' %}"></script>
+{% endif %}
+<script src="{% static 'room/chat.js' %}"></script>
 {% endblock %}
