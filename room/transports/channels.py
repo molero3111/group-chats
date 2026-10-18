@@ -10,7 +10,7 @@ logger = logging.getLogger('room.transports')
 
 class ChannelsTransport:
     def publish(self, room, event, payload):
-        # The message is already saved; on failure, receivers catch up over HTTP.
+        # The message is already saved; on failure, open tabs fetch it on their next HTTP sync.
         group = room_group(room)
         try:
             async_to_sync(get_channel_layer().group_send)(

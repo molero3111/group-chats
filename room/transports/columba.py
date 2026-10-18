@@ -29,7 +29,7 @@ def mint_token(user, room, now: int | None = None) -> str:
 
 class ColumbaTransport:
     def publish(self, room, event, payload):
-        # The message is already saved; on failure, receivers catch up over HTTP on reconnect.
+        # The message is already saved; on failure, open tabs fetch it on their next HTTP sync.
         body = {'topics': [room_topic(room)], 'event': event, 'payload': payload, 'id': str(payload['id'])}
         try:
             response = requests.post(

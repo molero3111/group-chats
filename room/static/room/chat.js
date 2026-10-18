@@ -13,8 +13,12 @@
     const errorBox = document.getElementById('chat-error');
 
     const CATCH_UP_PAGE = 100; // the server's page size for ?after=
+    const LIVE_SYNC_DELAY = 1000; // ms after a burst of live events before checking for gaps
     const rendered = new Set();
-    let lastId = 0;
+    let lastId = 0; // highest id on screen, from any source; only used to keep id order
+    // Highest id known to have no gaps before it. Only HTTP results move it: a live event can
+    // arrive after an earlier one was lost (failed publish), so it proves nothing about gaps.
+    let syncedId = 0;
     let signedOut = false;
 
     for (const el of list.querySelectorAll('[data-id]')) {
@@ -22,6 +26,7 @@
         rendered.add(id);
         lastId = Math.max(lastId, id);
     }
+    syncedId = lastId;
 
     function setStatus(text) {
         status.textContent = text;
@@ -85,7 +90,7 @@
     function catchUp() {
         catchingUp ||= (async () => {
             for (;;) {
-                const res = await fetch(`${config.messages_url}?after=${lastId}`, {credentials: 'same-origin'});
+                const res = await fetch(`${config.messages_url}?after=${syncedId}`, {credentials: 'same-origin'});
                 if (res.status === 401) {
                     markSignedOut();
                     return;
@@ -95,6 +100,9 @@
                 }
                 const {messages} = await res.json();
                 messages.forEach(renderMessage);
+                if (messages.length) {
+                    syncedId = Math.max(syncedId, messages[messages.length - 1].id);
+                }
                 if (messages.length < CATCH_UP_PAGE) {
                     return;
                 }
@@ -102,6 +110,20 @@
         })().catch(() => {}).finally(() => { catchingUp = null; });
         return catchingUp;
     }
+
+    // A live event means the room is active; shortly after a burst, fetch anything the
+    // transport failed to deliver. Duplicates are dropped by id, so the overlap is harmless.
+    let liveSyncTimer = null;
+    function renderLive(payload) {
+        renderMessage(payload);
+        clearTimeout(liveSyncTimer);
+        liveSyncTimer = setTimeout(catchUp, LIVE_SYNC_DELAY);
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !signedOut) {
+            catchUp();
+        }
+    });
 
     function connectChannels(transport) {
         let backoff = 1;
@@ -116,7 +138,7 @@
             ws.onmessage = (e) => {
                 const frame = JSON.parse(e.data);
                 if (frame.event === 'message.new') {
-                    renderMessage(frame.payload);
+                    renderLive(frame.payload);
                 }
             };
             ws.onclose = () => {
@@ -169,7 +191,7 @@
         const channel = socket.channel(`topic:${transport.topic}`);
         channel.on('event', (event) => {
             if (event.name === 'message.new') {
-                renderMessage(event.payload);
+                renderLive(event.payload);
             }
         });
         // Phoenix rejoins after every reconnect; each successful join catches up.
