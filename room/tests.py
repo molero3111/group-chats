@@ -49,3 +49,22 @@ class RoomLayoutTests(TestCase):
 
         for element_id in ['chat-messages', 'chat-message-input', 'chat-message-btn']:
             self.assertContains(response, f'id="{element_id}"')
+
+
+class SeedRoomsCommandTests(TestCase):
+    def test_seeds_fixture_rooms_into_empty_table(self):
+        from django.core.management import call_command
+
+        call_command('seed_rooms', verbosity=0)
+
+        self.assertTrue(Room.objects.filter(slug='work').exists())
+
+    def test_leaves_existing_rooms_alone(self):
+        from django.core.management import call_command
+
+        Room.objects.create(pk=1, name='Renamed by admin', slug='work')
+
+        call_command('seed_rooms', verbosity=0)
+
+        self.assertEqual(Room.objects.get(pk=1).name, 'Renamed by admin')
+        self.assertEqual(Room.objects.count(), 1)

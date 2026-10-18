@@ -22,9 +22,9 @@ done
 
 python manage.py migrate --no-input
 
-# Fixtures carry primary keys, so loading them again updates the same rows.
+# Seed the default rooms on a fresh database only, so admin edits survive restarts.
 if [ "$load_fixtures" = true ]; then
-    python manage.py loaddata fixtures/*
+    python manage.py seed_rooms
 fi
 
 python manage.py collectstatic --no-input
