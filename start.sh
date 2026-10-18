@@ -1,5 +1,6 @@
 #!/bin/bash
 # Usage: ./start.sh [--environment=local] [--load-fixtures]
+# Serves with Daphne (CHAT_TRANSPORT=channels) or gunicorn (CHAT_TRANSPORT=columba).
 set -euo pipefail
 
 environment="production"
@@ -31,6 +32,9 @@ python manage.py collectstatic --no-input
 
 if [ "$environment" = "local" ]; then
     exec python manage.py runserver 0.0.0.0:8000
+elif [ "${CHAT_TRANSPORT:-channels}" = "columba" ]; then
+    # Columba carries the websockets, so plain WSGI is enough.
+    exec gunicorn groupchats.wsgi:application -b 0.0.0.0:8000 -w "${WEB_CONCURRENCY:-3}"
 else
     exec daphne groupchats.asgi:application -b 0.0.0.0 -p 8000
 fi
