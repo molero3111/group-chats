@@ -68,3 +68,15 @@ class SeedRoomsCommandTests(TestCase):
 
         self.assertEqual(Room.objects.get(pk=1).name, 'Renamed by admin')
         self.assertEqual(Room.objects.count(), 1)
+
+    def test_quiet_at_verbosity_zero(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        Room.objects.create(name='Work', slug='work')
+        out = StringIO()
+
+        call_command('seed_rooms', verbosity=0, stdout=out)
+
+        self.assertEqual(out.getvalue(), '')

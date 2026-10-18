@@ -8,6 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if Room.objects.exists():
-            self.stdout.write('Rooms already exist; skipping fixtures.')
+            if options['verbosity'] > 0:
+                self.stdout.write('Rooms already exist; skipping fixtures.')
             return
         call_command('loaddata', 'rooms_fixture', verbosity=options['verbosity'])
