@@ -22,6 +22,19 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split()
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split()
 
+# Behind a TLS-terminating proxy that overwrites X-Forwarded-Proto (Cloudflare does).
+if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = config('SECURE_COOKIES', default=False, cast=bool)
+# request.META key holding the real client address, e.g. HTTP_CF_CONNECTING_IP; empty uses REMOTE_ADDR.
+CLIENT_IP_HEADER = config('CLIENT_IP_HEADER', default='', cast=str)
+
+# Abuse limits for a public instance, as <count>/<seconds> fixed windows in the default cache.
+LOGIN_RATE = config('LOGIN_RATE', default='10/300', cast=str)  # per client ip
+SIGNUP_RATE = config('SIGNUP_RATE', default='5/3600', cast=str)  # per client ip
+MESSAGE_RATE = config('MESSAGE_RATE', default='30/60', cast=str)  # per user
+MAX_USERS = config('MAX_USERS', default=500, cast=int)  # total accounts; 0 means no cap
+
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/rooms/'
 LOGIN_URL = '/login/'
@@ -99,6 +112,8 @@ DATABASES = {
         'NAME': config('POSTGRES_DB', default='group_chats', cast=str),
         'USER': config('POSTGRES_USER', default='group_chats', cast=str),
         'PASSWORD': config('POSTGRES_PASSWORD', cast=str),
+        # A hung postgres fails fast, so /healthz answers 503 instead of tying up a worker.
+        'OPTIONS': {'connect_timeout': 3},
     }
 }
 
@@ -156,6 +171,9 @@ CACHES = {
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'PASSWORD': REDIS_PASSWORD,
+            # Rate limits fail open on cache errors; give up fast so a hung Redis doesn't stall requests.
+            'SOCKET_CONNECT_TIMEOUT': 0.5,
+            'SOCKET_TIMEOUT': 0.5,
         }
     },
     'system': {

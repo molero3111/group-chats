@@ -2,12 +2,57 @@ from unittest import mock
 
 import jwt
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from room.models import Message, Room
 from room.payloads import message_payload
 from room.tests.test_transports import COLUMBA
+
+
+@override_settings(MESSAGE_RATE='2/60')
+class MessageRateLimitTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.ada = User.objects.create_user(username='ada', password='pw')
+        self.bob = User.objects.create_user(username='bob', password='pw')
+        Room.objects.create(name='Work', slug='work')
+        self.url = reverse('room-messages', args=['work'])
+        self.transport = mock.Mock()
+        patcher = mock.patch('room.views.get_transport', return_value=self.transport)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def send(self, user):
+        self.client.force_login(user)
+        return self.client.post(self.url, {'content': 'hi'})
+
+    def test_rate_limited_after_limit(self):
+        self.send(self.ada)
+        self.send(self.ada)
+
+        response = self.send(self.ada)
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json(), {'error': 'rate_limited'})
+        self.assertEqual(Message.objects.count(), 2)
+
+    def test_limit_is_per_user(self):
+        self.send(self.ada)
+        self.send(self.ada)
+
+        self.assertEqual(self.send(self.bob).status_code, 201)
+
+    def test_rate_limited_message_is_not_published(self):
+        self.send(self.ada)
+        self.send(self.ada)
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            self.send(self.ada)
+
+        self.assertEqual(callbacks, [])
+        self.assertEqual(self.transport.publish.call_count, 0)
 
 
 @override_settings(CHAT_TRANSPORT='columba', **COLUMBA)

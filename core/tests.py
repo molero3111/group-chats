@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.db import OperationalError
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 PASSWORD = 'a-Long-test-passw0rd'
@@ -78,3 +81,24 @@ class LayoutTests(TestCase):
 
         self.assertContains(response, f'<form method="post" action="{reverse("logout")}"')
         self.assertContains(response, 'csrfmiddlewaretoken')
+
+
+class HealthzTests(TestCase):
+    def test_ok_without_login(self):
+        response = self.client.get('/healthz')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    def test_database_down_is_503(self):
+        with patch('core.views.connection.cursor', side_effect=OperationalError('down')):
+            response = self.client.get('/healthz')
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {'status': 'unavailable'})
+
+    @override_settings(SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https'), ALLOWED_HOSTS=['127.0.0.1'])
+    def test_plain_http_from_the_container_healthcheck(self):
+        response = self.client.get('/healthz', HTTP_HOST='127.0.0.1')
+
+        self.assertEqual(response.status_code, 200)
