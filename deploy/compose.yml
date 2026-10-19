@@ -1,5 +1,5 @@
-# group-chats on the homelab. The host installs this file at /srv/apps/group-chats/compose.yml,
-# next to a server-generated .env (mode 0600, never in the repo); homelab-deploy runs it with
+# group-chats on the staging server. The server keeps this file at /srv/apps/group-chats/compose.yml,
+# next to a server-generated .env (mode 0600, never in the repo); its deploy command runs it with
 # IMAGE_TAG=<full commit sha>. Cloudflare tunnel -> 127.0.0.1:8086 -> web:8000.
 # Never publish another port: db and redis are reachable only on the private network.
 name: group-chats
@@ -82,7 +82,7 @@ services:
     networks: [group_chats]
 
 volumes:
-  # An 800 MB capped ext4 image prepared by the homelab; data/ is owned by uid 70 (postgres on alpine).
+  # An 800 MB capped ext4 image prepared on the server; data/ is owned by uid 70 (postgres on alpine).
   group_chats_db:
     driver: local
     driver_opts:

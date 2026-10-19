@@ -1,6 +1,5 @@
-# Deploy group-chats to the homelab when code is merged into the staging branch (or on demand
-# from staging). Ported from Columba's deploy-homelab.yml; the server side is homelab-deploy,
-# reached as `ssh deploy@<homelab> "group-chats <sha>"`.
+# Deploy group-chats to staging when code is merged into the staging branch (or on demand from
+# staging). The server side is a forced ssh command, reached as `ssh deploy@<host> "group-chats <sha>"`.
 # - resolve: decides what ships. A push (or a dispatch without `sha`) builds staging HEAD; a
 #   dispatch with `sha` redeploys that existing image (rollback) after the guards in
 #   .github/scripts/resolve-deploy-sha.sh.
@@ -10,10 +9,10 @@
 # - deploy: joins the tailnet and SSHes to the deploy user, whose forced command takes
 #   "<app> <sha>" with the job token on stdin (the image is private) and reports by exit code.
 #   The server migrates with the new image, swaps, health-gates /healthz and reverts on failure.
-# Secrets live in the "homelab" environment:
-#   TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET, HOMELAB_SSH_KEY, HOMELAB_KNOWN_HOSTS
+# Secrets live in the "staging" environment:
+#   TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS
 
-name: Deploy staging to homelab
+name: Deploy staging
 
 on:
   push:
@@ -33,7 +32,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-homelab-group-chats
+  group: deploy-staging-group-chats
   cancel-in-progress: false
 
 env:
@@ -125,7 +124,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy on homelab
+    name: Deploy to staging
     runs-on: ubuntu-latest
     # The server's host lock waits up to 15 min (a nightly backup or another deploy), then the
     # pull, the migrate step and up to two health gates (new tag, then revert): about 22 min worst case.
@@ -136,7 +135,7 @@ jobs:
       !cancelled() && github.ref == 'refs/heads/staging' && needs.resolve.result == 'success' &&
       ((needs.resolve.outputs.mode == 'build' && needs.build.result == 'success') ||
       (needs.resolve.outputs.mode == 'redeploy' && needs.build.result == 'skipped'))
-    environment: homelab
+    environment: staging
     permissions:
       contents: read
       packages: read
@@ -150,13 +149,13 @@ jobs:
 
       - name: Configure SSH
         env:
-          HOMELAB_SSH_KEY: ${{ secrets.HOMELAB_SSH_KEY }}
-          HOMELAB_KNOWN_HOSTS: ${{ secrets.HOMELAB_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$HOMELAB_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' "$HOMELAB_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy via SSH
@@ -173,7 +172,7 @@ jobs:
           set -e
           case "$rc" in
             0) msg="deployed $DEPLOY_SHA ($DEPLOY_MODE), healthy" ;;
-            1) msg="homelab-deploy hit an internal error; check the server" ;;
+            1) msg="the server's deploy command hit an internal error; check the server" ;;
             2) msg="refused: bad app or tag; nothing changed" ;;
             3) msg="image pull failed; nothing changed" ;;
             4) msg="migration failed before the swap; the previous container is still serving" ;;

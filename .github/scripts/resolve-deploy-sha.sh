@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Decides what the staging deploy ships (used by .github/workflows/deploy-homelab.yml).
+# Decides what the staging deploy ships (used by .github/workflows/deploy.yml).
 #   - no SHA requested: mode=build, sha=GITHUB_SHA (CI, then build, then deploy);
 #   - REQUESTED_SHA set (the workflow_dispatch input, a rollback or redeploy): mode=redeploy,
 #     after checking that it is a full SHA on staging's history, that CI's "test" job
