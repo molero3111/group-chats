@@ -22,8 +22,8 @@ Live at [https://group-chats.emmanuelcodinghub.com](https://group-chats.emmanuel
 
 1. Clone the repository:
 
-       git clone https://github.com/molero3111/chat_in_django.git
-       cd chat_in_django
+       git clone https://github.com/molero3111/group-chats.git
+       cd group-chats
 
 2. Create `.env` from `.env.example` and replace every `change-me` value.
 
