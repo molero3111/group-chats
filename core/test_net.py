@@ -61,6 +61,17 @@ class ProxySettingsTests(SimpleTestCase):
         self.assertLessEqual(connect, 1)
         self.assertLessEqual(read, 1)
 
+    def test_database_connect_gives_up_fast(self):
+        # /healthz must answer 503 promptly when postgres hangs, not tie up a worker for ~30 s.
+        code = ("import django; django.setup(); from django.conf import settings as s; "
+                "print(s.DATABASES['default']['OPTIONS']['connect_timeout'])")
+        env = {**os.environ, 'ENV_FILE': '/nonexistent/.env', 'SECRET_KEY': 'x', 'POSTGRES_PASSWORD': 'x',
+               'REDIS_PASSWORD': 'x', 'DJANGO_SETTINGS_MODULE': 'groupchats.settings'}
+        result = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env, capture_output=True, text=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLessEqual(int(result.stdout), 5)
+
     def test_malformed_rate_fails_at_startup(self):
         for key in ['LOGIN_RATE', 'SIGNUP_RATE', 'MESSAGE_RATE']:
             with self.subTest(key):

@@ -112,6 +112,8 @@ DATABASES = {
         'NAME': config('POSTGRES_DB', default='group_chats', cast=str),
         'USER': config('POSTGRES_USER', default='group_chats', cast=str),
         'PASSWORD': config('POSTGRES_PASSWORD', cast=str),
+        # A hung postgres fails fast, so /healthz answers 503 instead of tying up a worker.
+        'OPTIONS': {'connect_timeout': 3},
     }
 }
 
