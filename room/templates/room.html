@@ -8,10 +8,7 @@
     <header class="card-header d-flex align-items-center gap-3 bg-body">
         <a href="{% url 'rooms' %}" class="btn btn-sm btn-outline-secondary" aria-label="Back to rooms">&larr;</a>
         <h1 class="h5 mb-0"># {{ room.name }}</h1>
-        <span class="ms-auto d-flex align-items-center gap-2 small">
-            <span id="chat-status" class="text-body-secondary" aria-live="polite"></span>
-            <span class="badge text-bg-secondary">Realtime: {% if chat_config.transport.kind == 'columba' %}Columba{% else %}Django Channels{% endif %}</span>
-        </span>
+        <span id="chat-status" class="ms-auto small text-body-secondary" aria-live="polite"></span>
     </header>
     <div class="chat-messages card-body" id="chat-messages" aria-live="polite">
         {% for message in messages|dictsort:"id" %}
