@@ -22,6 +22,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split()
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split()
 
+# Behind a TLS-terminating proxy that overwrites X-Forwarded-Proto (Cloudflare does).
+if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = config('SECURE_COOKIES', default=False, cast=bool)
+# request.META key holding the real client address, e.g. HTTP_CF_CONNECTING_IP; empty uses REMOTE_ADDR.
+CLIENT_IP_HEADER = config('CLIENT_IP_HEADER', default='', cast=str)
+
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/rooms/'
 LOGIN_URL = '/login/'
