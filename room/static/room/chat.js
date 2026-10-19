@@ -228,6 +228,8 @@
                 input.value = '';
             } else if (res.status === 401) {
                 markSignedOut();
+            } else if (res.status === 429) {
+                showError("You're sending messages too fast. Wait a moment and try again.");
             } else if (res.status === 400) {
                 const {error} = await res.json();
                 showError(error === 'too_long' ? 'That message is too long (4000 characters max).' : 'Write something first.');

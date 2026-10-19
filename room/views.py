@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 
+from core.ratelimit import allow
 from room.models import Room, Message
 from room.payloads import message_payload
 from room.transports import get_transport
@@ -77,6 +78,8 @@ class RoomMessagesView(View):
     @method_decorator(api_login_required)
     def post(self, request, slug):
         room = get_object_or_404(Room, slug=slug)
+        if not allow('message', str(request.user.id), settings.MESSAGE_RATE):
+            return JsonResponse({'error': 'rate_limited'}, status=429)
         content = _posted_content(request)
         if content is None or '\x00' in content:  # PostgreSQL text cannot hold NUL
             return JsonResponse({'error': 'invalid_body'}, status=400)

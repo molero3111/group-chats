@@ -32,5 +32,10 @@ STORAGES = {
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
 
+# The locmem cache outlives each test, so real limits would leak counts between tests;
+# rate-limit tests override these and clear the cache.
+LOGIN_RATE = SIGNUP_RATE = MESSAGE_RATE = '100000/60'
+MAX_USERS = 0
+
 CHAT_TRANSPORT = 'channels'
 COLUMBA_URL = COLUMBA_SOCKET_URL = COLUMBA_APP_ID = COLUMBA_API_KEY = COLUMBA_SIGNING_SECRET = ''
