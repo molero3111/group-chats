@@ -8,3 +8,5 @@ psycopg[binary]==3.3.6
 django-redis==7.0.0
 redis==8.1.0
 python-decouple==3.8
+requests==2.34.2
+PyJWT==2.15.1
