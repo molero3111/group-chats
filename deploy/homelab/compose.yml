@@ -1,0 +1,94 @@
+# group-chats on the homelab. The host installs this file at /srv/apps/group-chats/compose.yml,
+# next to a server-generated .env (mode 0600, never in the repo); homelab-deploy runs it with
+# IMAGE_TAG=<full commit sha>. Cloudflare tunnel -> 127.0.0.1:8086 -> web:8000.
+# Never publish another port: db and redis are reachable only on the private network.
+name: group-chats
+
+services:
+  web:
+    image: ghcr.io/molero3111/group-chats:${IMAGE_TAG:?IMAGE_TAG is required}
+    # start.sh also runs migrate on every start; after the deploy's migrate step it finds nothing
+    # pending, and on a revert the older image sees only newer, already-applied migrations (a no-op).
+    # --load-fixtures seeds the default rooms into an empty table only.
+    command: ["./start.sh", "--load-fixtures"]
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8086:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # python:3.14-slim has no curl or wget.
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status != 200)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: "1.0"
+    pids_limit: 512
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [group_chats]
+
+  db:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    restart: unless-stopped
+    # Only the database's own variables, so the app's secrets stay out of this container.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    # PG18 images keep PGDATA at /var/lib/postgresql/18/docker, so mount the parent.
+    volumes:
+      - group_chats_db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: "0.5"
+    pids_limit: 200
+    logging: *logging
+    networks: [group_chats]
+
+  redis:
+    image: redis:8-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    restart: unless-stopped
+    # Only a cache (sessions are in postgres; Columba carries realtime), so nothing is persisted.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --save "" --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: "0.5"
+    pids_limit: 100
+    logging: *logging
+    networks: [group_chats]
+
+volumes:
+  # An 800 MB capped ext4 image prepared by the homelab; data/ is owned by uid 70 (postgres on alpine).
+  group_chats_db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /srv/volumes/group-chats-db/data
+
+networks:
+  group_chats: {}

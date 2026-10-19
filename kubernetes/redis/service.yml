@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: chat-redis
+  name: group-chats-redis
 spec:
   selector:
-      pod: chat-redis
+      pod: group-chats-redis
   ports:
     - protocol: TCP
       port: 6379

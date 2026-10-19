@@ -1,0 +1,58 @@
+.auth-card {
+    width: 100%;
+    max-width: 26rem;
+}
+
+.room-card {
+    transition: border-color .15s ease-in-out;
+}
+
+.room-card:hover,
+.room-card:focus-visible {
+    border-color: var(--bs-primary);
+}
+
+/* The chat fills the viewport below the navbar; only the message list scrolls. */
+.chat {
+    min-height: 0;
+    max-height: calc(100dvh - 7rem);
+}
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    overflow-y: auto;
+    min-height: 12rem;
+}
+
+.msg {
+    align-self: flex-start;
+    max-width: min(80%, 36rem);
+    padding: .5rem .75rem;
+    border-radius: 1rem 1rem 1rem .25rem;
+    background: var(--bs-secondary-bg);
+    overflow-wrap: anywhere;
+}
+
+.msg-mine {
+    align-self: flex-end;
+    border-radius: 1rem 1rem .25rem 1rem;
+    background: var(--bs-primary);
+    color: #fff;
+}
+
+.msg-meta {
+    display: flex;
+    gap: .5rem;
+    font-size: .75rem;
+    opacity: .75;
+}
+
+.msg-author {
+    font-weight: 600;
+}
+
+.msg-body {
+    white-space: pre-wrap;
+}

@@ -1,86 +1,46 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %} {{ room.name }} | {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-lg-12 text-center">
-            <h1 class="display-4">{{ room.name }}</h1>
-        </div>
-    </div>
-    <div class="col-lg-8 mx-auto p-4 bg-white rounded-xl">
-        <div class="chat-messages mt-3" id="chat-messages">
-            {% for message in messages|dictsort:"id" %}
-            <div class="p-3 rounded-xl mb-3 w-50 {% if message.user == request.user %}text-right text-white ml-auto bg-dark{% else %}bg-light{% endif %}">
-                <p class="font-weight-bold">{{ message.user.username }}</p>
-                <p>{{ message.content }}</p>
+<section class="chat card shadow-sm flex-grow-1">
+    <header class="card-header d-flex align-items-center gap-3 bg-body">
+        <a href="{% url 'rooms' %}" class="btn btn-sm btn-outline-secondary" aria-label="Back to rooms">&larr;</a>
+        <h1 class="h5 mb-0"># {{ room.name }}</h1>
+        <span class="ms-auto d-flex align-items-center gap-2 small">
+            <span id="chat-status" class="text-body-secondary" aria-live="polite"></span>
+            <span class="badge text-bg-secondary">Realtime: {% if chat_config.transport.kind == 'columba' %}Columba{% else %}Django Channels{% endif %}</span>
+        </span>
+    </header>
+    <div class="chat-messages card-body" id="chat-messages" aria-live="polite">
+        {% for message in messages|dictsort:"id" %}
+        <div class="msg{% if message.user == request.user %} msg-mine{% endif %}" data-id="{{ message.id }}">
+            <div class="msg-meta">
+                <span class="msg-author">{{ message.user.username }}</span>
+                <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|time:'H:i' }}</time>
             </div>
-            {% endfor %}
+            <div class="msg-body">{{ message.content }}</div>
         </div>
-        <div class="col-lg-8 mt-4 mx-auto p-4 bg-white rounded-xl">
-            <form method="post" action="rooms" class="form-inline">
-                <input type="text" name="content" class="form-control flex-1 mr-3" placeholder="Your message..."
-                       id="chat-message-input">
-                <button id="chat-message-btn" class="btn btn-primary px-5 py-3 rounded-xl">Submit</button>
-            </form>
-        </div>
+        {% endfor %}
     </div>
-</div>
+    <footer class="card-footer bg-body">
+        <div id="chat-error" class="text-danger small mb-2" role="alert" hidden></div>
+        <form id="chat-form" class="d-flex gap-2" autocomplete="off">
+            <label for="chat-message-input" class="visually-hidden">Message</label>
+            <input type="text" name="content" class="form-control" placeholder="Write a message…"
+                   id="chat-message-input" maxlength="4000">
+            <button id="chat-message-btn" class="btn btn-primary px-4">Send</button>
+        </form>
+    </footer>
+</section>
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
-{{ room.slug|json_script:"json-roomname" }}
-{{ request.user.username|json_script:"json-username" }}
-<script>
-    const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
-    const userName = JSON.parse(document.getElementById('json-username').textContent);
-    const protocolPrefix = (window.location.protocol === "https:") ? "wss" : "ws";
-    let urlPrefix = "{{url_prefix}}";
-    urlPrefix =  urlPrefix ? `/${urlPrefix}` : "";
-    const wsRoute = `${protocolPrefix}://${window.location.host}${urlPrefix}/ws/${roomName}/`;
-    console.log('ws route', wsRoute);
-    const chatSocket = new WebSocket(wsRoute);
-
-  chatSocket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
-        console.log("New message", data);
-        if (!data.message) {
-            return alert("Message is empty");
-        }
-        let messageClass = 'bg-light';
-        if (data.username === userName) {
-            messageClass = 'bg-dark text-white text-right ml-auto';
-        }
-        let html = `<div class="p-3 rounded-xl mb-3 w-50 ${messageClass}">`;
-        html += `<p class="font-weight-bold">${data.username}</p>`;
-        html += `<p>${data.message}</p></div>`;
-        document.querySelector('#chat-messages').innerHTML += html;
-        scrollToBottom();
-    }
-
-
-    chatSocket.close = function (e) {
-        console.log('onclose', e)
-    }
-    document.querySelector('#chat-message-btn').onclick = function (e) {
-        e.preventDefault();
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
-        chatSocket.send(JSON.stringify({
-            'message': message,
-            'username': userName,
-            'room': roomName
-        }));
-        messageInputDom.value = '';
-    }
-
-    function scrollToBottom() {
-        const chat_messages_div = document.querySelector('#chat-messages');
-        chat_messages_div.scrollTop = chat_messages_div.scrollHeight;
-    }
-
-    scrollToBottom();
-</script>
+{{ chat_config|json_script:"chat-config" }}
+{% if chat_config.transport.kind == 'columba' %}
+<script src="{% static 'room/vendor/phoenix-1.8.15.js' %}"></script>
+{% endif %}
+<script src="{% static 'room/chat.js' %}"></script>
 {% endblock %}

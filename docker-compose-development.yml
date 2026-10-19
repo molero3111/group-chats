@@ -1,46 +1,39 @@
-version: '3.8'  # Specifies the version of the Docker Compose file format being used.
+services:
 
-services:  # Defines the services that make up your application.
+  web:
+    build: ./
+    command: ./start.sh --environment=local --load-fixtures
+    volumes:
+      - .:/app  # live code reload
+    ports:
+      - "${HOST_MACHINE_WEB_PORT:-8000}:8000"
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+      - redis
+    networks:
+      - group_chats_network
 
-  web:  # Configuration for the web service.
-    build: ./  # Specifies the location of the Dockerfile to build the container.
-    command: ./start_chat_app.sh --environment=local # Defines the command to run when the container starts.
-    volumes:  # Mounts volumes from the host machine to the container.
-      - .:/app  # Maps the current directory on the host to /app directory in the container.
-    ports:  # Exposes ports from the container to the host.
-      - 8000:8000  # Maps port 8000 on the host to port 8000 in the container.
-    env_file:  # Specifies the environment file to use.
-      - ./.env  # Reads environment variables from the .env file.
-    depends_on:  # Specifies the dependencies of this service.
-      - db  # Indicates that this service depends on the "db" service.
-      - redis  # Indicates that this service depends on the "redis" service.
-    networks:  # Specifies the networks the service should be connected to.
-      - django_chat_network  # Connects this service to the "django_chat_network" network.
+  db:
+    image: postgres:18-alpine
+    volumes:
+      - group_chats_postgres:/var/lib/postgresql
+    env_file:
+      - ./.env
+    networks:
+      - group_chats_network
 
-  db:  # Configuration for the database service.
-    image: postgis/postgis:13-3.1  # Specifies the Docker image to use.
-    volumes:  # Mounts volumes from the host machine to the container.
-      - postgres_data:/var/lib/postgresql/data/  # Maps a volume for PostgreSQL data storage.
-    env_file:  # Specifies the environment file to use.
-      - ./.env  # Reads environment variables from the .env file.
-    ports:  # Exposes ports from the container to the host.
-      - '5433:5432'  # Maps port 5432 in the container to port 5433 on the host.
-    networks:  # Specifies the networks the service should be connected to.
-      - django_chat_network  # Connects this service to the "django_chat_network" network.
+  redis:
+    image: redis:8-alpine
+    env_file:
+      - ./.env
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - group_chats_network
 
-  redis:  # Configuration for the Redis service.
-    image: "redis:7.2.1"  # Specifies the Docker image to use.
-    env_file:  # Specifies the environment file to use.
-      - ./.env  # Reads environment variables from the .env file.
-    command: redis-server --requirepass ${REDIS_PASSWORD}  # Overrides the default command.
-    ports:  # Exposes ports from the container to the host.
-      - '6379:6379'  # Maps port 6379 in the container to port 6379 on the host.
-    networks:  # Specifies the networks the service should be connected to.
-      - django_chat_network  # Connects this service to the "django_chat_network" network.
+volumes:
+  group_chats_postgres:
 
-volumes:  # Defines named volumes for persistent storage.
-  postgres_data:  # Defines a named volume for PostgreSQL data storage.
-
-networks:  # Defines Docker networks.
-  django_chat_network:  # Configuration for the "django_chat_network" network.
-    external: true  # Indicates that this network is defined externally and should be reused if it already exists.
+networks:
+  group_chats_network:

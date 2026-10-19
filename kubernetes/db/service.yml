@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: chat-db
+  name: group-chats-db
 spec:
   selector:
       app: postgres-container

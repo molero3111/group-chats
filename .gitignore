@@ -24,7 +24,7 @@ kubernetes/django/ingress.yml
 media/
 
 # Ignore static files
-static/
+/static/
 staticfiles/
 
 # Ignore virtual environment
@@ -42,7 +42,7 @@ local_settings.py
 docs/_build/
 
 # Environment file
-djangochat/environment.py
+groupchats/environment.py
 
 # Docker
 chat-image:latest
@@ -50,3 +50,4 @@ chat-image:latest
 # Nginx
 nginx.conf
 nginx/ssl
+.venv/

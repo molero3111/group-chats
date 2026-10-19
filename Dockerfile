@@ -1,33 +1,15 @@
-# pull official base image
-FROM python:3.11-slim
+FROM python:3.14-slim
 
-# set work directory
 WORKDIR /app
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# install system dependencies
-RUN apt-get update && \
-    apt-get -y install build-essential gdal-bin python3-gdal libgdal-dev
-
-# install dependencies
-RUN pip install --upgrade pip
 COPY ./requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# copy wait-for-it.sh
-COPY ./wait-for-it.sh .
-
-# make wait-for-it.sh executable
-RUN chmod +x wait-for-it.sh
-
-# copy project
 COPY . .
+RUN chmod +x start.sh wait-for-it.sh
 
-# make start_chat_app.sh executable
-RUN chmod +x start_chat_app.sh
-
-# run wait-for-it.sh
+# Wait for the database before running the compose command.
 ENTRYPOINT ["./wait-for-it.sh", "db:5432", "--"]
