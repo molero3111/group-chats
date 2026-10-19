@@ -7,7 +7,9 @@ name: group-chats
 services:
   web:
     image: ghcr.io/molero3111/group-chats:${IMAGE_TAG:?IMAGE_TAG is required}
-    # Seeds the default rooms on an empty database only; migrations already ran in the deploy's migrate step.
+    # start.sh also runs migrate on every start; after the deploy's migrate step it finds nothing
+    # pending, and on a revert the older image sees only newer, already-applied migrations (a no-op).
+    # --load-fixtures seeds the default rooms into an empty table only.
     command: ["./start.sh", "--load-fixtures"]
     restart: unless-stopped
     env_file: .env
