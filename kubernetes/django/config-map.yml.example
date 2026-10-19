@@ -1,19 +1,18 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: chat-config
+  name: group-chats-config
 data:
-  DEBUG: "True"
-  ALLOWED_HOSTS: "localhost,127.0.0.1,[::1]"
-  CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000"
-  DJANGO_SETTINGS_MODULE: "djangochat.settings"
-  POSTGRES_HOST: "chat-db"
+  DEBUG: "False"
+  ALLOWED_HOSTS: "group-chats.emmanuelcodinghub.com"
+  CSRF_TRUSTED_ORIGINS: "https://group-chats.emmanuelcodinghub.com"
+  DJANGO_SETTINGS_MODULE: "groupchats.settings"
+  POSTGRES_HOST: "group-chats-db"
   POSTGRES_PORT: "5432"
-  POSTGRES_DB: "django_chat_db"
+  POSTGRES_DB: "group_chats"
   POSTGRES_USER: "postgres"
-  REDIS_HOST: "chat-redis"
+  REDIS_HOST: "group-chats-redis"
   REDIS_PORT: "6379"
   REDIS_APP_DB: "1"
   REDIS_DEFAULT_DB: "0"
   REDIS_DEFAULT_KEY_EXPIRATION: "3600"
-  URL_PREFIX: ""

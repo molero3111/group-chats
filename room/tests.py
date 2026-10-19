@@ -1,3 +1,82 @@
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
 
-# Create your tests here.
+from room.models import Message, Room
+
+
+class RoomsViewTests(TestCase):
+    def test_rooms_requires_login(self):
+        response = self.client.get(reverse('rooms'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response['Location'])
+
+
+class RoomViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='ada', password='pw')
+        self.room = Room.objects.create(name='Work', slug='work')
+        self.client.force_login(self.user)
+
+    def test_room_page_lists_history(self):
+        for content in ['first', 'second', '<b>third</b>']:
+            Message.objects.create(room=self.room, user=self.user, content=content)
+
+        response = self.client.get(reverse('room', args=['work']))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'first')
+        self.assertContains(response, 'second')
+        self.assertContains(response, '&lt;b&gt;third&lt;/b&gt;')
+        self.assertNotContains(response, '<b>third</b>')
+
+
+class WebsocketRoutingTests(TestCase):
+    def test_websocket_route_has_no_prefix(self):
+        from room.routing import websocket_urlpatterns
+
+        self.assertTrue(any(p.pattern.match('ws/work/') for p in websocket_urlpatterns))
+
+
+class RoomLayoutTests(TestCase):
+    def test_room_page_keeps_chat_ids(self):
+        user = User.objects.create_user(username='ada', password='pw')
+        Room.objects.create(name='Work', slug='work')
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('room', args=['work']))
+
+        for element_id in ['chat-messages', 'chat-message-input', 'chat-message-btn']:
+            self.assertContains(response, f'id="{element_id}"')
+
+
+class SeedRoomsCommandTests(TestCase):
+    def test_seeds_fixture_rooms_into_empty_table(self):
+        from django.core.management import call_command
+
+        call_command('seed_rooms', verbosity=0)
+
+        self.assertTrue(Room.objects.filter(slug='work').exists())
+
+    def test_leaves_existing_rooms_alone(self):
+        from django.core.management import call_command
+
+        Room.objects.create(pk=1, name='Renamed by admin', slug='work')
+
+        call_command('seed_rooms', verbosity=0)
+
+        self.assertEqual(Room.objects.get(pk=1).name, 'Renamed by admin')
+        self.assertEqual(Room.objects.count(), 1)
+
+    def test_quiet_at_verbosity_zero(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        Room.objects.create(name='Work', slug='work')
+        out = StringIO()
+
+        call_command('seed_rooms', verbosity=0, stdout=out)
+
+        self.assertEqual(out.getvalue(), '')

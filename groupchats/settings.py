@@ -1,32 +1,30 @@
 import os
 from pathlib import Path
 
-from decouple import Config
-
-config = Config('.env')
+from decouple import Config, RepositoryEmpty, RepositoryEnv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Read only this project's .env (or ENV_FILE); the process environment takes precedence.
+ENV_FILE = Path(os.environ.get('ENV_FILE', BASE_DIR / '.env'))
+config = Config(RepositoryEnv(ENV_FILE) if ENV_FILE.is_file() else RepositoryEmpty())
+
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='insecure-39472947', cast=str)
+SECRET_KEY = config('SECRET_KEY', cast=str)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(' ')
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(' ')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split()
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split()
 
-URL_PREFIX = config('URL_PREFIX', default='chat-app', cast=str)
-if URL_PREFIX:
-    FORCE_SCRIPT_NAME = f'/{URL_PREFIX}'
-URL_PREFIX_FORWARD_SLASH = f'{URL_PREFIX}/' if URL_PREFIX else ''
-LOGOUT_REDIRECT_URL = f'/{URL_PREFIX_FORWARD_SLASH}'
-LOGIN_REDIRECT_URL = f'/{URL_PREFIX_FORWARD_SLASH}rooms/'
-LOGIN_URL = f'/{URL_PREFIX_FORWARD_SLASH}login/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/rooms/'
+LOGIN_URL = '/login/'
 
 # Application definition
 
@@ -45,6 +43,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -53,7 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'djangochat.urls'
+ROOT_URLCONF = 'groupchats.urls'
 
 TEMPLATES = [
     {
@@ -71,8 +70,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'djangochat.wsgi.application'
-ASGI_APPLICATION = 'djangochat.asgi.application'  # for the chat, long-running connections
+WSGI_APPLICATION = 'groupchats.wsgi.application'
+ASGI_APPLICATION = 'groupchats.asgi.application'  # for the chat, long-running connections
 
 # Define Redis connection details using environment variables
 REDIS_HOST = config('REDIS_HOST', default='redis', cast=str)
@@ -80,7 +79,7 @@ REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
 REDIS_DEFAULT_DB = config('REDIS_DEFAULT_DB', default=0, cast=int)
 REDIS_APP_DB = config('REDIS_APP_DB', default=0, cast=int)
 REDIS_DEFAULT_KEY_EXPIRATION = config('REDIS_DEFAULT_KEY_EXPIRATION', default=3600, cast=int)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default='1234', cast=str)
+REDIS_PASSWORD = config('REDIS_PASSWORD', cast=str)
 
 CHANNEL_LAYERS = {
     'default': {
@@ -94,17 +93,17 @@ CHANNEL_LAYERS = {
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': config('POSTGRES_HOST', default='db', cast=str),
         'PORT': config('POSTGRES_PORT', default='5432', cast=str),
-        'NAME': config('POSTGRES_DB', default='chat_db', cast=str),
-        'USER': config('POSTGRES_USER', default='chat_admin', cast=str),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='9287532461', cast=str),
+        'NAME': config('POSTGRES_DB', default='group_chats', cast=str),
+        'USER': config('POSTGRES_USER', default='group_chats', cast=str),
+        'PASSWORD': config('POSTGRES_PASSWORD', cast=str),
     }
 }
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -122,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
+# https://docs.djangoproject.com/en/6.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
@@ -133,13 +132,20 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+FIXTURE_DIRS = [BASE_DIR / 'fixtures']
+
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+# https://docs.djangoproject.com/en/6.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

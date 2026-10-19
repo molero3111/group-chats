@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chat-app
+  name: group-chats
   labels:
-    app: chat
+    app: group-chats
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chat
+      app: group-chats
   template:
     metadata:
       labels:
-        app: chat
+        app: group-chats
     spec:
       containers:
-        - image: molero3111/django-chat:v1
+        - image: molero3111/group-chats:v1
           imagePullPolicy: Always
-          name: chat
+          name: group-chats
           envFrom:
             - secretRef:
-                name: chat-secret
+                name: group-chats-secret
             - configMapRef:
-                name: chat-config
+                name: group-chats-config
           ports:
             - containerPort: 8000
               name: daphne

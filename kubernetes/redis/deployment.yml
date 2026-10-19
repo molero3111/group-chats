@@ -8,15 +8,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      pod: chat-redis
+      pod: group-chats-redis
   template:
     metadata:
       labels:
-        pod: chat-redis
+        pod: group-chats-redis
     spec:
       containers:
         - name: redis-container
-          image: redis:7.2.1
+          image: redis:8-alpine
           resources:
             requests:
               cpu: 100m
@@ -27,6 +27,6 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: chat-secret
-                  key: REDIS_PASSWORD  # Assuming you have REDIS_PASSWORD stored in the chat-secret secret
+                  name: group-chats-secret
+                  key: REDIS_PASSWORD  # Assuming you have REDIS_PASSWORD stored in the group-chats-secret secret
           command: [ "redis-server", "--requirepass", "$(REDIS_PASSWORD)" ]  # Set the Redis password

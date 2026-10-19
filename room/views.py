@@ -4,7 +4,6 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views import View
 
-from djangochat.settings import URL_PREFIX
 from room.models import Room, Message
 
 
@@ -26,6 +25,5 @@ class RoomView(View):
 
         return render(request, 'room.html', {
             'room': room_item,
-            'messages': messages,
-            'url_prefix': URL_PREFIX
+            'messages': messages
         })
