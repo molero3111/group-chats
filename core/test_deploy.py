@@ -171,3 +171,62 @@ class HomelabComposeTests(SimpleTestCase):
 
         for part in ['--requirepass', '--save ""', '--appendonly no', '--maxmemory 64mb', 'allkeys-lru']:
             self.assertIn(part, command)
+
+
+def load_workflow(name):
+    workflow = yaml.safe_load((ROOT / '.github/workflows' / name).read_text())
+    # YAML 1.1 reads the bare key `on` as True.
+    workflow['on'] = workflow.pop(True, workflow.get('on'))
+    return workflow
+
+
+@skipUnless(yaml, 'needs PyYAML from requirements-dev.txt')
+class DeployWorkflowTests(SimpleTestCase):
+    def setUp(self):
+        self.workflow = load_workflow('deploy-homelab.yml')
+        self.jobs = self.workflow['jobs']
+
+    def test_triggers_are_staging_push_and_dispatch(self):
+        self.assertEqual(self.workflow['on']['push'], {'branches': ['staging']})
+        self.assertIn('sha', self.workflow['on']['workflow_dispatch']['inputs'])
+
+    def test_one_deploy_at_a_time(self):
+        self.assertEqual(self.workflow['concurrency'],
+                         {'group': 'deploy-homelab-group-chats', 'cancel-in-progress': False})
+
+    def test_deploy_job_uses_homelab_environment_and_read_only_packages(self):
+        deploy = self.jobs['deploy']
+
+        self.assertEqual(deploy['environment'], 'homelab')
+        self.assertEqual(deploy['permissions'], {'contents': 'read', 'packages': 'read'})
+
+    def test_deploy_targets_group_chats_app_key(self):
+        script = next(step['run'] for step in self.jobs['deploy']['steps'] if step.get('name') == 'Deploy via SSH')
+
+        self.assertIn('deploy@100.77.124.5 "group-chats $DEPLOY_SHA"', script)
+        self.assertIn('StrictHostKeyChecking=yes', script)
+        self.assertIn("printf '%s' \"$GHCR_TOKEN\" |", script)
+
+    def test_ci_runs_before_build(self):
+        self.assertEqual(self.jobs['ci']['uses'], './.github/workflows/ci.yml')
+        self.assertIn('ci', self.jobs['build']['needs'])
+        self.assertIn('build', self.jobs['deploy']['needs'])
+
+    def test_build_is_amd64_and_sha_tagged(self):
+        build = next(step['with'] for step in self.jobs['build']['steps']
+                     if step.get('uses', '').startswith('docker/build-push-action@'))
+
+        self.assertEqual(build['platforms'], 'linux/amd64')
+        self.assertEqual(build['tags'], '${{ env.IMAGE_NAME }}:${{ needs.resolve.outputs.sha }}')
+        self.assertEqual(self.workflow['env']['IMAGE_NAME'], 'ghcr.io/molero3111/group-chats')
+
+    def test_rollback_guard_checks_this_repos_ci_job(self):
+        script = (ROOT / '.github/scripts/resolve-deploy-sha.sh').read_text()
+
+        self.assertIn('test("(^|/ )test$")', script)
+
+    def test_ci_is_callable_and_skips_staging_push(self):
+        ci = load_workflow('ci.yml')
+
+        self.assertIn('workflow_call', ci['on'])
+        self.assertEqual(ci['on']['push'], {'branches-ignore': ['staging']})
