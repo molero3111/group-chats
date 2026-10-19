@@ -71,5 +71,29 @@ CI runs the same command on every push and pull request.
 ## Deploying
 
 `start.sh` runs migrations, optionally loads fixtures (`--load-fixtures`), collects static files and starts Daphne
-(or `runserver` with `--environment=local`). Kubernetes manifests are in `kubernetes/`, and an nginx reverse-proxy
-example is in `nginx/nginx.conf.example`. Both expect the app at the root of its own host.
+(or gunicorn when `CHAT_TRANSPORT=columba`, or `runserver` with `--environment=local`). Kubernetes manifests are in
+`kubernetes/`, and an nginx reverse-proxy example is in `nginx/nginx.conf.example`. Both expect the app at the root
+of its own host.
+
+### Homelab (https://group-chats.emmanuelcodinghub.com)
+
+The public instance runs in Columba mode on the homelab, behind a Cloudflare tunnel to `127.0.0.1:8086`.
+
+- **Flow:** merging into `staging` runs `.github/workflows/deploy-homelab.yml`. It runs CI on that commit, pushes
+  `ghcr.io/molero3111/group-chats:<sha>`, then joins the tailnet and calls the host's `homelab-deploy` over ssh with
+  `group-chats <sha>`. The host migrates with the new image while the old one serves, swaps, waits for `/healthz`
+  and reverts to the previous image if the gate fails. The job's exit code says which of those happened.
+- **On the host** (owned by the homelab, not this repo): `/srv/apps/group-chats/compose.yml` is a copy of
+  `deploy/homelab/compose.yml`; `/srv/apps/group-chats/.env` (mode 0600) holds the settings; Postgres data lives on
+  an 800 MB capped volume at `/srv/volumes/group-chats-db/data`.
+- **Settings the host's `.env` needs** beyond `.env.example`'s local values: `CHAT_TRANSPORT=columba` with the
+  `COLUMBA_*` keys, `DEBUG=False`, `ALLOWED_HOSTS` including `127.0.0.1` (the container healthcheck),
+  `CLIENT_IP_HEADER=HTTP_CF_CONNECTING_IP`, `USE_X_FORWARDED_PROTO=True` and `SECURE_COOKIES=True`. The limits
+  `LOGIN_RATE`, `SIGNUP_RATE`, `MESSAGE_RATE` and `MAX_USERS` default to 10/300, 5/3600, 30/60 and 500.
+- **Rollback:** `gh workflow run deploy-homelab.yml --ref staging -f sha=<full sha>` redeploys an image that is on
+  `staging`, passed CI and still exists. It never rolls the schema back.
+- **Migrations must be expand/contract.** A failed health gate puts the previous image back on the new schema, so
+  every release must leave the schema usable by the release before it: add columns and tables first, and drop
+  them only in a later release once nothing reads them.
+- Realtime depends on Columba staging being up. Sending and history keep working without it; open pages catch up
+  once it is back.
