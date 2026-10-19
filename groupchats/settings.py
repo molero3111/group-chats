@@ -29,6 +29,12 @@ SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = config('SECURE_COOKIES', default=Fa
 # request.META key holding the real client address, e.g. HTTP_CF_CONNECTING_IP; empty uses REMOTE_ADDR.
 CLIENT_IP_HEADER = config('CLIENT_IP_HEADER', default='', cast=str)
 
+# Abuse limits for a public instance, as <count>/<seconds> fixed windows in the default cache.
+LOGIN_RATE = config('LOGIN_RATE', default='10/300', cast=str)  # per client ip
+SIGNUP_RATE = config('SIGNUP_RATE', default='5/3600', cast=str)  # per client ip
+MESSAGE_RATE = config('MESSAGE_RATE', default='30/60', cast=str)  # per user
+MAX_USERS = config('MAX_USERS', default=500, cast=int)  # total accounts; 0 means no cap
+
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/rooms/'
 LOGIN_URL = '/login/'
