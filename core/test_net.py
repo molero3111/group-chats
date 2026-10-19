@@ -48,6 +48,31 @@ class ProxySettingsTests(SimpleTestCase):
     def test_proxy_flags_off_by_default(self):
         self.assertEqual(self.load_settings(), 'None False False')
 
+    def test_cache_gives_up_fast_when_redis_hangs(self):
+        # Rate limits fail open, but only after the socket gives up; redis-py's default is about 5 s.
+        code = ('import django; django.setup(); from django.conf import settings as s; '
+                "o = s.CACHES['default']['OPTIONS']; print(o['SOCKET_CONNECT_TIMEOUT'], o['SOCKET_TIMEOUT'])")
+        env = {**os.environ, 'ENV_FILE': '/nonexistent/.env', 'SECRET_KEY': 'x', 'POSTGRES_PASSWORD': 'x',
+               'REDIS_PASSWORD': 'x', 'DJANGO_SETTINGS_MODULE': 'groupchats.settings'}
+        result = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env, capture_output=True, text=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        connect, read = (float(v) for v in result.stdout.split())
+        self.assertLessEqual(connect, 1)
+        self.assertLessEqual(read, 1)
+
+    def test_malformed_rate_fails_at_startup(self):
+        for key in ['LOGIN_RATE', 'SIGNUP_RATE', 'MESSAGE_RATE']:
+            with self.subTest(key):
+                env = {**os.environ, 'ENV_FILE': '/nonexistent/.env', 'SECRET_KEY': 'x', 'POSTGRES_PASSWORD': 'x',
+                       'REDIS_PASSWORD': 'x', 'DJANGO_SETTINGS_MODULE': 'groupchats.settings', key: '10 per minute'}
+                result = subprocess.run([sys.executable, '-c', 'import django; django.setup()'],
+                                        cwd=ROOT, env=env, capture_output=True, text=True)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('ImproperlyConfigured', result.stderr)
+                self.assertIn(key, result.stderr)
+
     def test_proxy_flags_on(self):
         self.assertEqual(self.load_settings(USE_X_FORWARDED_PROTO='True', SECURE_COOKIES='True'),
                          "('HTTP_X_FORWARDED_PROTO', 'https') True True")
