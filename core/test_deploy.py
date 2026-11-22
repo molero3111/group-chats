@@ -122,9 +122,9 @@ REDIS_IMAGE = 'redis:8-alpine@sha256:'
 
 
 @skipUnless(yaml, 'needs PyYAML from requirements-dev.txt')
-class HomelabComposeTests(SimpleTestCase):
+class DeployComposeTests(SimpleTestCase):
     def setUp(self):
-        self.compose = yaml.safe_load((ROOT / 'deploy/homelab/compose.yml').read_text())
+        self.compose = yaml.safe_load((ROOT / 'deploy/compose.yml').read_text())
         self.services = self.compose['services']
 
     def test_only_web_publishes_a_port_on_loopback(self):
@@ -183,7 +183,7 @@ def load_workflow(name):
 @skipUnless(yaml, 'needs PyYAML from requirements-dev.txt')
 class DeployWorkflowTests(SimpleTestCase):
     def setUp(self):
-        self.workflow = load_workflow('deploy-homelab.yml')
+        self.workflow = load_workflow('deploy.yml')
         self.jobs = self.workflow['jobs']
 
     def test_triggers_are_staging_push_and_dispatch(self):
@@ -192,13 +192,25 @@ class DeployWorkflowTests(SimpleTestCase):
 
     def test_one_deploy_at_a_time(self):
         self.assertEqual(self.workflow['concurrency'],
-                         {'group': 'deploy-homelab-group-chats', 'cancel-in-progress': False})
+                         {'group': 'deploy-staging-group-chats', 'cancel-in-progress': False})
 
-    def test_deploy_job_uses_homelab_environment_and_read_only_packages(self):
+    def test_deploy_job_uses_staging_environment_and_read_only_packages(self):
         deploy = self.jobs['deploy']
 
-        self.assertEqual(deploy['environment'], 'homelab')
+        self.assertEqual(deploy['environment'], 'staging')
         self.assertEqual(deploy['permissions'], {'contents': 'read', 'packages': 'read'})
+
+    def test_ssh_secrets_use_deploy_names(self):
+        ssh = next(step for step in self.jobs['deploy']['steps'] if step.get('name') == 'Configure SSH')
+
+        self.assertEqual(ssh['env'], {'DEPLOY_SSH_KEY': '${{ secrets.DEPLOY_SSH_KEY }}',
+                                      'DEPLOY_KNOWN_HOSTS': '${{ secrets.DEPLOY_KNOWN_HOSTS }}'})
+
+    def test_no_homelab_naming_left(self):
+        for path in ['.github/workflows/deploy.yml', '.github/workflows/ci.yml',
+                     '.github/scripts/resolve-deploy-sha.sh', 'deploy/compose.yml']:
+            with self.subTest(path):
+                self.assertNotIn('homelab', (ROOT / path).read_text().lower())
 
     def test_deploy_targets_group_chats_app_key(self):
         script = next(step['run'] for step in self.jobs['deploy']['steps'] if step.get('name') == 'Deploy via SSH')

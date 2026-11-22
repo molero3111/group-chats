@@ -17,5 +17,5 @@ data:
   REDIS_DEFAULT_DB: "0"
   REDIS_DEFAULT_KEY_EXPIRATION: "3600"
   CHAT_TRANSPORT: "channels"
-  COLUMBA_URL: "https://staging-columba.emmanuelcodinghub.com"
-  COLUMBA_SOCKET_URL: "wss://staging-columba.emmanuelcodinghub.com/socket"
+  COLUMBA_URL: "https://columba.velzmith.com"
+  COLUMBA_SOCKET_URL: "wss://columba.velzmith.com/socket"

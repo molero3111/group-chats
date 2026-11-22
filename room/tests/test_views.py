@@ -75,7 +75,7 @@ class RoomPageConfigTests(TestCase):
         self.assertContains(response, 'room/chat.js')
         self.assertNotContains(response, 'phoenix-1.8.15.js')
         self.assertNotContains(response, 'new WebSocket')
-        self.assertContains(response, 'Realtime: Django Channels')
+        self.assertNotContains(response, 'Realtime:')
 
     def test_columba_mode(self):
         from django.test import override_settings
@@ -92,7 +92,7 @@ class RoomPageConfigTests(TestCase):
             'token_url': reverse('room-token', args=['work']),
         })
         self.assertContains(response, 'room/vendor/phoenix-1.8.15.js')
-        self.assertContains(response, 'Realtime: Columba')
+        self.assertNotContains(response, 'Realtime:')
         self.assertNotContains(response, COLUMBA['COLUMBA_API_KEY'])
         self.assertNotContains(response, COLUMBA['COLUMBA_SIGNING_SECRET'])
 
