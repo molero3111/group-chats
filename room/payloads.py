@@ -5,6 +5,7 @@ def message_payload(message: Message) -> dict:
     """The event body every transport delivers for a new message."""
     return {
         'id': message.id,
+        'seq': message.seq,
         'room': message.room.slug,
         'user': {'id': message.user_id, 'username': message.user.username},
         'content': message.content,
