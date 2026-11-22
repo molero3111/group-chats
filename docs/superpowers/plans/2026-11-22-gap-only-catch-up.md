@@ -25,6 +25,8 @@
 4. **Live event during an in-flight catch-up** must not be lost. Today `catchUp()` returns the running promise, so a gap revealed mid-fetch is never fetched. A call during a run must schedule exactly one more run after it. Task 3 (`catch-up requested while running runs once more`).
 5. **Own message after missed messages:** the POST 201 response goes through the same gap check, so sending after a silent gap also repairs it. Task 3 (`own message with a gap triggers catch-up`).
 
+**As built (after final review):** the migrations are 0002 (fields, `editable=False`), 0003 (set-based `ROW_NUMBER()` backfill) and 0004 (unique index built `CONCURRENTLY` on PostgreSQL, then attached as the constraint). Each send also numbers any rows the previous release left without a seq, so a deploy-overlap row with a lost publish shows up as a skipped seq. Steps below describe the original plan.
+
 Accepted trade-off (no test): if the *last* message of a burst is lost, no later event reveals the gap until the next message, reconnect or tab focus. Publish failures are logged server-side (`Columba publish failed/answered`).
 
 ---
@@ -76,7 +78,7 @@ Accepted trade-off (no test): if the *last* message of a burst is lost, no later
 **Files:**
 - Create: `room/static/room/sync.js` (pure logic, no DOM)
 - Create: `room/static/room/sync.test.mjs`
-- Modify: `room/static/room/chat.js`, `room/templates/room.html` (load `sync.js` before `chat.js`), `.github/workflows/ci.yml` (add `actions/setup-node@v5` with `node-version: '22'` and `node --test room/static/room/`)
+- Modify: `room/static/room/chat.js`, `room/templates/room.html` (load `sync.js` before `chat.js`), `.github/workflows/ci.yml` (add `actions/setup-node@v5` with `node-version: '22'` and `node --test 'room/static/room/*.test.mjs'`)
 - Test: `room/tests/test_views.py` (the page includes `room/sync.js` before `room/chat.js`)
 
 **Interfaces:**
@@ -89,7 +91,7 @@ Accepted trade-off (no test): if the *last* message of a burst is lost, no later
   - `classify`: `(4,5)→'next'`, `(4,7)→'gap'`, `(4,4)→'old'`, `(4,2)→'old'`, `(0,1)→'next'` (empty room), `(null,5)→'gap'`, `(4,null)→'gap'` (unknown seq triggers catch-up).
   - `late duplicate is ignored`: `(6,5)→'old'`.
   - `createCatchUp`: `catch-up requested while running runs once more`: `run` resolves on a manual deferred; call 3 times during the first run → `run` was called 2 times total after both settle. `idle calls run once each`: 2 sequential awaited calls → 2 runs. `a rejected run is swallowed and the next call still runs`.
-- [ ] **Step 2: Run** `node --test room/static/room/` → FAIL (module not found).
+- [ ] **Step 2: Run** `node --test 'room/static/room/*.test.mjs'` → FAIL (module not found).
 - [ ] **Step 3: Implement `sync.js`.**
 - [ ] **Step 4: Wire `chat.js`.**
   - Replace `catchingUp` with `const catchUp = ChatSync.createCatchUp(fetchMissing)`, where `fetchMissing` is today's loop body. After each page it sets `syncedId` to the last id and `syncedSeq` to the last message's `seq` (which may be `null`).
@@ -101,7 +103,7 @@ Accepted trade-off (no test): if the *last* message of a burst is lost, no later
   - Delete `LIVE_SYNC_DELAY`, `liveSyncTimer` and `renderLive`.
   - Keep the catch-ups on Channels `onopen`/`onclose`, Columba join `ok`, and `visibilitychange`.
   - Update the header comment to say catch-up runs on connect, on tab focus and when a seq gap is seen.
-- [ ] **Step 5: Run** `node --test room/static/room/` and the Django suite → PASS. Manual check with `runserver` and two tabs in Channels mode: DevTools → Fetch/XHR shows no `messages/?after=` after a live message; stopping Redis publish (or a temporary `raise` in `publish`) for one message, then sending another, shows exactly one catch-up GET that fills the gap.
+- [ ] **Step 5: Run** `node --test 'room/static/room/*.test.mjs'` and the Django suite → PASS. Manual check with `runserver` and two tabs in Channels mode: DevTools → Fetch/XHR shows no `messages/?after=` after a live message; stopping Redis publish (or a temporary `raise` in `publish`) for one message, then sending another, shows exactly one catch-up GET that fills the gap.
 - [ ] **Step 6: Commit** `feat(room): catch up only when a message gap is detected`.
 
 ### Task 4: Docs

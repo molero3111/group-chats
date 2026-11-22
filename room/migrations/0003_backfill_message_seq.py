@@ -1,17 +1,16 @@
 from django.db import migrations
 
-
-def backfill(apps, schema_editor):
-    """Number each room's existing messages 1, 2, 3... in id order and record the newest seq."""
-    Room = apps.get_model('room', 'Room')
-    Message = apps.get_model('room', 'Message')
-    for room in Room.objects.all():
-        messages = list(Message.objects.filter(room=room).order_by('id').only('id'))
-        for seq, message in enumerate(messages, start=1):
-            message.seq = seq
-        Message.objects.bulk_update(messages, ['seq'], batch_size=500)
-        room.last_seq = len(messages)
-        room.save(update_fields=['last_seq'])
+# Number each room's messages 1, 2, 3... in id order in one statement, then record each room's
+# newest seq. UPDATE ... FROM with a window function works on PostgreSQL and SQLite 3.33+.
+NUMBER_MESSAGES = """
+UPDATE room_message SET seq = numbered.rn
+FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY room_id ORDER BY id) AS rn FROM room_message) AS numbered
+WHERE room_message.id = numbered.id
+"""
+RECORD_LAST_SEQ = """
+UPDATE room_room SET last_seq = COALESCE(
+    (SELECT MAX(seq) FROM room_message WHERE room_message.room_id = room_room.id), 0)
+"""
 
 
 class Migration(migrations.Migration):
@@ -21,5 +20,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill, migrations.RunPython.noop),
+        migrations.RunSQL(NUMBER_MESSAGES, migrations.RunSQL.noop),
+        migrations.RunSQL(RECORD_LAST_SEQ, migrations.RunSQL.noop),
     ]
