@@ -77,6 +77,12 @@ class RoomPageConfigTests(TestCase):
         self.assertNotContains(response, 'new WebSocket')
         self.assertNotContains(response, 'Realtime:')
 
+    def test_sync_script_loads_before_chat(self):
+        page = self.client.get(reverse('room', args=['work'])).content.decode()
+
+        self.assertIn('room/sync.js', page)
+        self.assertLess(page.index('room/sync.js'), page.index('room/chat.js'))
+
     def test_latest_seq_in_config(self):
         for seq in (1, 2, 3):
             Message.objects.create(room=self.room, user=self.user, content=str(seq), seq=seq)
