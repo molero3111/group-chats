@@ -79,3 +79,31 @@ class BackfillSeqMigrationTests(TransactionTestCase):
         self.assertEqual(RoomModel.objects.get(slug='a').last_seq, 3)
         self.assertEqual(RoomModel.objects.get(slug='b').last_seq, 2)
         self.assertEqual(RoomModel.objects.get(slug='empty').last_seq, 0)
+
+
+class SeqAdminTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='root', password='pw')
+        self.client.force_login(self.admin)
+        self.room = Room.objects.create(name='Work', slug='work', last_seq=13)
+
+    def test_saving_a_room_in_admin_keeps_last_seq(self):
+        # A change form opened before 3 more sends would otherwise write the stale 10 back.
+        url = f'/admin/room/room/{self.room.pk}/change/'
+
+        response = self.client.post(url, {'name': 'Work renamed', 'slug': 'work', 'last_seq': 10})
+
+        self.assertEqual(response.status_code, 302)
+        room = Room.objects.get(pk=self.room.pk)
+        self.assertEqual(room.name, 'Work renamed')
+        self.assertEqual(room.last_seq, 13)
+
+    def test_message_seq_not_editable_in_admin(self):
+        message = Message.objects.create(room=self.room, user=self.admin, content='hi', seq=13)
+        url = f'/admin/room/message/{message.pk}/change/'
+
+        self.client.post(url, {'room': self.room.pk, 'user': self.admin.pk, 'content': 'edited', 'seq': ''})
+
+        message.refresh_from_db()
+        self.assertEqual(message.content, 'edited')
+        self.assertEqual(message.seq, 13)
