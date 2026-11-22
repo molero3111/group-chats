@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    # deploy-homelab.yml calls this workflow for staging, so a staging push runs it once.
+    # deploy.yml calls this workflow for staging, so a staging push runs it once.
     branches-ignore:
       - staging
   pull_request:
