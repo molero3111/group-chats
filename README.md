@@ -44,8 +44,10 @@ Django saves it, then publishes it through the transport.
 | `channels` (default) | Django Channels: the browser opens `/ws/<slug>/`; messages fan out through the Redis channel layer. | Daphne (ASGI) |
 | `columba` | [Columba](https://columba.velzmith.com/docs), a hosted fan-out service: Django publishes to `POST /api/v1/publish`, and the browser joins `topic:room:<room id>` with the Phoenix JS client and a short-lived token from `GET /rooms/<slug>/token/`. | gunicorn (WSGI); no Redis channel layer needed |
 
-Columba stores nothing, so Django stays the source of truth for history. After every connect or reconnect, the page
-catches up with `GET /rooms/<slug>/messages/?after=<last id>`, and drops duplicates by message id.
+Columba stores nothing, so Django stays the source of truth for history. Every message carries a per-room `seq`
+(1, 2, 3… within its room). Messages that arrive in order cost no request; the page catches up with
+`GET /rooms/<slug>/messages/?after=<last id>` only after a connect or reconnect, when the tab is shown again, or when a
+`seq` skips a number (a lost publish). Duplicates are dropped by message id.
 
 Columba settings (from the Columba dashboard; keep them out of the repo):
 

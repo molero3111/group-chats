@@ -24,3 +24,7 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python manage.py makemigrations --check --dry-run --settings=groupchats.settings_test
       - run: python manage.py test --settings=groupchats.settings_test
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: node --test 'room/static/room/*.test.mjs'

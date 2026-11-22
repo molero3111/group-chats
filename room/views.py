@@ -45,6 +45,8 @@ class RoomView(View):
 
         messages_query = Message.objects.filter(room=room_item).order_by('-id')
 
+        latest_id, latest_seq = messages_query.values_list('id', 'seq').first() or (0, 0)
+
         paginator = Paginator(messages_query, 100)
         messages = paginator.get_page(request.GET.get('page', 1))
 
@@ -56,7 +58,9 @@ class RoomView(View):
                 'messages_url': reverse('room-messages', args=[room_item.slug]),
                 'user_id': request.user.id,
                 # Catch-up starts here, not at the newest id on screen: an older ?page shows old ids.
-                'latest_id': messages_query.values_list('id', flat=True).first() or 0,
+                'latest_id': latest_id,
+                # None (unknown) when the newest row predates seq; the client then catches up.
+                'latest_seq': latest_seq,
             },
         })
 
@@ -89,11 +93,25 @@ class RoomMessagesView(View):
         if len(content) > MAX_MESSAGE_LENGTH:
             return JsonResponse({'error': 'too_long'}, status=400)
 
-        # The author is always the session user, never anything the client sends.
-        message = Message.objects.create(room=room, user=request.user, content=content)
-        payload = message_payload(message)
-        # robust: a broken transport is logged, never turned into a 500 for a message already saved.
-        transaction.on_commit(lambda: get_transport().publish(room, 'message.new', payload), robust=True)
+        with transaction.atomic():
+            # The room row lock serializes sends per room, so seqs are gapless and unique.
+            locked = Room.objects.select_for_update().get(pk=room.pk)
+            # Rows the previous release wrote (deploy overlap or revert) have no seq. Number them
+            # first, in id order, so a tab that missed one sees the skip and fetches it.
+            unnumbered = list(locked.messages.filter(seq__isnull=True).order_by('id').only('id'))
+            for legacy in unnumbered:
+                locked.last_seq += 1
+                legacy.seq = locked.last_seq
+            if unnumbered:
+                Message.objects.bulk_update(unnumbered, ['seq'])
+            locked.last_seq += 1
+            locked.save(update_fields=['last_seq'])
+            # The author is always the session user, never anything the client sends.
+            message = Message.objects.create(room=locked, user=request.user, content=content,
+                                             seq=locked.last_seq)
+            payload = message_payload(message)
+            # robust: a broken transport is logged, never turned into a 500 for a message already saved.
+            transaction.on_commit(lambda: get_transport().publish(locked, 'message.new', payload), robust=True)
         return JsonResponse(payload, status=201)
 
 

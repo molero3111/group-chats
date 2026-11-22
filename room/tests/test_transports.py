@@ -35,7 +35,7 @@ class PayloadTests(TestCase):
     def test_message_payload_shape(self):
         payload = message_payload(self.message)
 
-        self.assertEqual(set(payload), {'id', 'room', 'user', 'content', 'created_at'})
+        self.assertEqual(set(payload), {'id', 'seq', 'room', 'user', 'content', 'created_at'})
         self.assertEqual(payload['id'], self.message.id)
         self.assertEqual(payload['room'], 'work')
         self.assertEqual(payload['user'], {'id': self.user.id, 'username': 'ada'})

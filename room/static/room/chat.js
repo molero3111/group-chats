@@ -1,6 +1,7 @@
 // Room page client. Receives over Django Channels or Columba (receive-only), sends over HTTP.
-// Every (re)connect is followed by a catch-up fetch, because a live socket only carries what
-// happens while it is open; Django is the source of truth for history.
+// Django is the source of truth for history, and the transports store nothing, so the page
+// catches up over HTTP after every (re)connect, when the tab is shown again, and when a
+// message's per-room seq skips a number. Messages that arrive in order cost no request.
 (() => {
     'use strict';
 
@@ -13,12 +14,14 @@
     const errorBox = document.getElementById('chat-error');
 
     const CATCH_UP_PAGE = 100; // the server's page size for ?after=
-    const LIVE_SYNC_DELAY = 1000; // ms after a burst of live events before checking for gaps
     const rendered = new Set();
     let lastId = 0; // highest id on screen, from any source; only used to keep id order
     // Highest id known to have no gaps before it. Only HTTP results move it: a live event can
     // arrive after an earlier one was lost (failed publish), so it proves nothing about gaps.
     let syncedId = 0;
+    // The seq that goes with syncedId; null while unknown (rows from before seq), which makes
+    // the next message catch up instead of trusting the order.
+    let syncedSeq = config.latest_seq;
     let signedOut = false;
 
     for (const el of list.querySelectorAll('[data-id]')) {
@@ -87,38 +90,44 @@
         }
     }
 
-    let catchingUp = null;
-    function catchUp() {
-        catchingUp ||= (async () => {
-            for (;;) {
-                const res = await fetch(`${config.messages_url}?after=${syncedId}`, {credentials: 'same-origin'});
-                if (res.status === 401) {
-                    markSignedOut();
-                    return;
-                }
-                if (!res.ok) {
-                    return;
-                }
-                const {messages} = await res.json();
-                messages.forEach(renderMessage);
-                if (messages.length) {
-                    syncedId = Math.max(syncedId, messages[messages.length - 1].id);
-                }
-                if (messages.length < CATCH_UP_PAGE) {
-                    return;
+    async function fetchMissing() {
+        for (;;) {
+            const res = await fetch(`${config.messages_url}?after=${syncedId}`, {credentials: 'same-origin'});
+            if (res.status === 401) {
+                markSignedOut();
+                return;
+            }
+            if (!res.ok) {
+                return;
+            }
+            const {messages} = await res.json();
+            messages.forEach(renderMessage);
+            if (messages.length) {
+                const newest = messages[messages.length - 1];
+                if (newest.id > syncedId) {
+                    syncedId = newest.id;
+                    syncedSeq = newest.seq;
                 }
             }
-        })().catch(() => {}).finally(() => { catchingUp = null; });
-        return catchingUp;
+            if (messages.length < CATCH_UP_PAGE) {
+                return;
+            }
+        }
     }
+    const catchUp = ChatSync.createCatchUp(fetchMissing);
 
-    // A live event means the room is active; shortly after a burst, fetch anything the
-    // transport failed to deliver. Duplicates are dropped by id, so the overlap is harmless.
-    let liveSyncTimer = null;
-    function renderLive(payload) {
+    // Every message from the socket or our own send passes here. One that follows the last
+    // seq we hold moves the synced point with no request; a skipped seq means one was lost
+    // (failed publish, dropped socket), so fetch what is missing. Duplicates are dropped by id.
+    function accept(payload) {
         renderMessage(payload);
-        clearTimeout(liveSyncTimer);
-        liveSyncTimer = setTimeout(catchUp, LIVE_SYNC_DELAY);
+        const order = ChatSync.classify(syncedSeq, payload.seq);
+        if (order === 'next') {
+            syncedSeq = payload.seq;
+            syncedId = Math.max(syncedId, payload.id);
+        } else if (order === 'gap' && !signedOut) {
+            catchUp();
+        }
     }
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && !signedOut) {
@@ -139,7 +148,7 @@
             ws.onmessage = (e) => {
                 const frame = JSON.parse(e.data);
                 if (frame.event === 'message.new') {
-                    renderLive(frame.payload);
+                    accept(frame.payload);
                 }
             };
             ws.onclose = () => {
@@ -192,7 +201,7 @@
         const channel = socket.channel(`topic:${transport.topic}`);
         channel.on('event', (event) => {
             if (event.name === 'message.new') {
-                renderLive(event.payload);
+                accept(event.payload);
             }
         });
         // Phoenix rejoins after every reconnect; each successful join catches up.
@@ -224,7 +233,7 @@
                 body: JSON.stringify({content}),
             });
             if (res.status === 201) {
-                renderMessage(await res.json()); // the broadcast copy is then a duplicate and skipped
+                accept(await res.json()); // the broadcast copy is then a duplicate and skipped
                 input.value = '';
             } else if (res.status === 401) {
                 markSignedOut();
