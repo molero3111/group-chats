@@ -229,6 +229,24 @@ class RoomMessagesPostTests(TestCase):
         self.assertEqual(Room.objects.get(pk=self.room.pk).last_seq, 1)
 
 
+    def test_send_numbers_rows_left_without_seq(self):
+        # Rows the previous release wrote during a deploy overlap or revert have no seq. The next
+        # send numbers them first, so a tab that missed one sees a skipped seq and fetches it.
+        Message.objects.create(room=self.room, user=self.bob, content='a', seq=1)
+        Room.objects.filter(pk=self.room.pk).update(last_seq=1)
+        old_one = Message.objects.create(room=self.room, user=self.bob, content='old image', seq=None)
+        old_two = Message.objects.create(room=self.room, user=self.bob, content='old image', seq=None)
+        self.client.force_login(self.ada)
+
+        response = self.client.post(self.url, {'content': 'new image'})
+
+        self.assertEqual(response.json()['seq'], 4)
+        old_one.refresh_from_db()
+        old_two.refresh_from_db()
+        self.assertEqual([old_one.seq, old_two.seq], [2, 3])
+        self.assertEqual(Room.objects.get(pk=self.room.pk).last_seq, 4)
+
+
 class RoomMessagesCatchUpTests(TestCase):
     def setUp(self):
         self.ada = User.objects.create_user(username='ada', password='pw')

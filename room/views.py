@@ -96,6 +96,14 @@ class RoomMessagesView(View):
         with transaction.atomic():
             # The room row lock serializes sends per room, so seqs are gapless and unique.
             locked = Room.objects.select_for_update().get(pk=room.pk)
+            # Rows the previous release wrote (deploy overlap or revert) have no seq. Number them
+            # first, in id order, so a tab that missed one sees the skip and fetches it.
+            unnumbered = list(locked.messages.filter(seq__isnull=True).order_by('id').only('id'))
+            for legacy in unnumbered:
+                locked.last_seq += 1
+                legacy.seq = locked.last_seq
+            if unnumbered:
+                Message.objects.bulk_update(unnumbered, ['seq'])
             locked.last_seq += 1
             locked.save(update_fields=['last_seq'])
             # The author is always the session user, never anything the client sends.
