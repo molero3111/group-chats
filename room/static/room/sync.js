@@ -28,16 +28,18 @@
                 .finally(() => { current = null; });
             return current;
         };
-        return function catchUp() {
+        function catchUp() {
             if (!current) {
                 return start();
             }
             queued ||= current.then(() => {
                 queued = null;
-                return start();
+                // Another caller may have started a run in between; queue behind it instead.
+                return current ? catchUp() : start();
             });
             return queued;
-        };
+        }
+        return catchUp;
     }
 
     const api = {classify, createCatchUp};

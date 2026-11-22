@@ -85,3 +85,35 @@ test('a rejected run is swallowed and the next call still runs', async () => {
 
     assert.equal(count, 2);
 });
+
+test('runs never overlap when a caller re-requests from its continuation', async () => {
+    let active = 0;
+    let maxActive = 0;
+    const runs = [];
+    const catchUp = createCatchUp(() => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        const d = deferred();
+        runs.push(d);
+        return d.promise.finally(() => { active -= 1; });
+    });
+
+    const first = catchUp();
+    // This continuation is registered before the queued run's, so it runs first.
+    const again = first.then(() => catchUp());
+    catchUp(); // queues a run behind the first
+
+    runs[0].resolve();
+    await first;
+    for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+    }
+    runs.forEach((d) => d.resolve());
+    await again;
+    for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+    }
+    runs.forEach((d) => d.resolve());
+
+    assert.equal(maxActive, 1);
+});
