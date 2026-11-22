@@ -77,6 +77,21 @@ class RoomPageConfigTests(TestCase):
         self.assertNotContains(response, 'new WebSocket')
         self.assertNotContains(response, 'Realtime:')
 
+    def test_latest_seq_in_config(self):
+        for seq in (1, 2, 3):
+            Message.objects.create(room=self.room, user=self.user, content=str(seq), seq=seq)
+        empty = Room.objects.create(name='Empty', slug='empty')
+        legacy = Room.objects.create(name='Legacy', slug='legacy')
+        Message.objects.create(room=legacy, user=self.user, content='old', seq=1)
+        Message.objects.create(room=legacy, user=self.user, content='revert window', seq=None)
+
+        def latest_seq(slug):
+            return self.chat_config(self.client.get(reverse('room', args=[slug])))['latest_seq']
+
+        self.assertEqual(latest_seq('work'), 3)
+        self.assertEqual(latest_seq(empty.slug), 0)
+        self.assertIsNone(latest_seq(legacy.slug))
+
     def test_columba_mode(self):
         from django.test import override_settings
 

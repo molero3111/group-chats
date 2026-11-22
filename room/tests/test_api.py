@@ -195,6 +195,40 @@ class RoomMessagesPostTests(TestCase):
         self.transport.publish.assert_called_once_with(self.room, 'message.new', response.json())
 
 
+    def test_seq_increments_per_room(self):
+        other = Room.objects.create(name='Art', slug='art')
+        self.client.force_login(self.ada)
+
+        first = self.client.post(self.url, {'content': 'a'}).json()
+        second = self.client.post(self.url, {'content': 'b'}).json()
+        elsewhere = self.client.post(reverse('room-messages', args=['art']), {'content': 'c'}).json()
+
+        self.assertEqual([first['seq'], second['seq'], elsewhere['seq']], [1, 2, 1])
+        self.assertEqual(Room.objects.get(pk=self.room.pk).last_seq, 2)
+        self.assertEqual(Room.objects.get(pk=other.pk).last_seq, 1)
+
+    def test_published_payload_has_seq(self):
+        self.client.force_login(self.ada)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.url, {'content': 'hi'})
+
+        published = self.transport.publish.call_args.args[2]
+        self.assertEqual(published['seq'], response.json()['seq'])
+        self.assertEqual(published['seq'], 1)
+
+    @override_settings(MESSAGE_RATE='2/60')  # the 400 counts toward the rate too
+    def test_rejected_message_does_not_consume_seq(self):
+        cache.clear()
+        self.client.force_login(self.ada)
+
+        self.assertEqual(self.client.post(self.url, {'content': '   '}).status_code, 400)
+        self.assertEqual(self.client.post(self.url, {'content': 'ok'}).status_code, 201)
+        self.assertEqual(self.client.post(self.url, {'content': 'too fast'}).status_code, 429)
+
+        self.assertEqual(Room.objects.get(pk=self.room.pk).last_seq, 1)
+
+
 class RoomMessagesCatchUpTests(TestCase):
     def setUp(self):
         self.ada = User.objects.create_user(username='ada', password='pw')
