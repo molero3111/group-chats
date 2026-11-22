@@ -42,7 +42,7 @@ Django saves it, then publishes it through the transport.
 | Mode | How it works | Server |
 |---|---|---|
 | `channels` (default) | Django Channels: the browser opens `/ws/<slug>/`; messages fan out through the Redis channel layer. | Daphne (ASGI) |
-| `columba` | [Columba](https://staging-columba.emmanuelcodinghub.com/docs), a hosted fan-out service: Django publishes to `POST /api/v1/publish`, and the browser joins `topic:room:<room id>` with the Phoenix JS client and a short-lived token from `GET /rooms/<slug>/token/`. | gunicorn (WSGI); no Redis channel layer needed |
+| `columba` | [Columba](https://columba.velzmith.com/docs), a hosted fan-out service: Django publishes to `POST /api/v1/publish`, and the browser joins `topic:room:<room id>` with the Phoenix JS client and a short-lived token from `GET /rooms/<slug>/token/`. | gunicorn (WSGI); no Redis channel layer needed |
 
 Columba stores nothing, so Django stays the source of truth for history. After every connect or reconnect, the page
 catches up with `GET /rooms/<slug>/messages/?after=<last id>`, and drops duplicates by message id.
@@ -51,8 +51,8 @@ Columba settings (from the Columba dashboard; keep them out of the repo):
 
 | Key | Example |
 |---|---|
-| `COLUMBA_URL` | `https://staging-columba.emmanuelcodinghub.com` (server-side publish; inside Docker on the infra network, `http://columba:4000`) |
-| `COLUMBA_SOCKET_URL` | `wss://staging-columba.emmanuelcodinghub.com/socket` (what the browser connects to) |
+| `COLUMBA_URL` | `https://columba.velzmith.com` (server-side publish; inside Docker on the infra network, `http://columba:4000`) |
+| `COLUMBA_SOCKET_URL` | `wss://columba.velzmith.com/socket` (what the browser connects to) |
 | `COLUMBA_APP_ID`, `COLUMBA_API_KEY`, `COLUMBA_SIGNING_SECRET` | shown once when the app is created |
 
 For a local Columba on the shared infra platform, use `http://columba.localhost` and `ws://columba.localhost/socket`.
@@ -95,5 +95,5 @@ The public instance runs in Columba mode on the homelab, behind a Cloudflare tun
 - **Migrations must be expand/contract.** A failed health gate puts the previous image back on the new schema, so
   every release must leave the schema usable by the release before it: add columns and tables first, and drop
   them only in a later release once nothing reads them.
-- Realtime depends on Columba staging being up. Sending and history keep working without it; open pages catch up
+- Realtime depends on Columba prod being up. Sending and history keep working without it; open pages catch up
   once it is back.
